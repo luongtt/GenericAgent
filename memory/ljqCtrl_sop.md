@@ -1,46 +1,46 @@
-# ljqCtrl 使用与坐标转换 SOP
+# ljqCtrl Usage and Coordinate Conversion SOP
 
-> **must call update working ckp**：`ljqCtrl一律使用物理坐标｜禁pyautogui｜操作前先gw激活窗口`
+> **Must call update working ckp**: `ljqCtrl must exclusively use physical coordinates | PyAutoGUI is forbidden | Restore/Activate window horizontally via gw before acting`
 
-## 0. API 快速参考 (Signatures)
-- `ljqCtrl.dpi_scale`: float (缩放系数 = 逻辑宽度 / 物理宽度)
-- `ljqCtrl.SetCursorPos(z)`: 移动鼠标到逻辑坐标 z=(x, y)
-- `ljqCtrl.Click(x, y=None)`: 模拟点击。支持 `Click((x, y))` 或 `Click(x, y)`
-- `ljqCtrl.Press(cmd, staytime=0)`: 模拟按键。如 `Press('ctrl+c')`
-- `ljqCtrl.FindBlock(fn, wrect=None, threshold=0.8)`: 找图。返回 `((center_x, center_y), is_found)`
-- `ljqCtrl.MouseDClick(staytime=0.05)`: 鼠标双击
+## 0. API Quick Reference (Signatures)
+- `ljqCtrl.dpi_scale`: float (Scale factor = logical width / physical width)
+- `ljqCtrl.SetCursorPos(z)`: Move mouse cursor to logical coordinate `z=(x, y)`
+- `ljqCtrl.Click(x, y=None)`: Simulate a click. Supports `Click((x, y))` or `Click(x, y)`
+- `ljqCtrl.Press(cmd, staytime=0)`: Simulate a keyboard press. E.g. `Press('ctrl+c')`
+- `ljqCtrl.FindBlock(fn, wrect=None, threshold=0.8)`: Find image on screen. Returns `((center_x, center_y), is_found)`
+- `ljqCtrl.MouseDClick(staytime=0.05)`: Mouse double click.
 
-## 1. 环境载入
-必须先将 `../memory` 加入路径，才能导入工具模块：
+## 1. Environment Loading
+`../memory` must be appended to the path before the tool module can be imported:
 ```python
 import sys, os, pygetwindow as gw
 sys.path.append("../memory")
 import ljqCtrl
 ```
 
-## 2. 核心：High-DPI 物理坐标换算
-`ljqCtrl` 的 `Click/MoveTo` 接口接收的是**物理像素坐标**。
-当使用 `pygetwindow` 等工具获取窗口位置（逻辑坐标）时，必须除以缩放系数。
+## 2. Core: High-DPI Physical Coordinate Conversion
+`ljqCtrl`'s `Click/MoveTo` interfaces accept **physical pixel coordinates**.
+When using utilities like `pygetwindow` to acquire window dimensions/positions (logical coordinates), they MUST be divided by the scaling coefficient.
 
-- **换算公式**：`物理坐标 = 逻辑坐标 / ljqCtrl.dpi_scale`
-- **注意**：3840 (4K) 仅为当前开发机示例，实际物理边界由系统环境决定，代码应始终通过 `dpi_scale` 动态计算。
+- **Conversion Equation**: `Physical Coordinate = Logical Coordinate / ljqCtrl.dpi_scale`
+- **Note**: 3840 (4K) operates merely as a dev machine example; actual physical borders rely deeply upon system environments. Scripts must continually infer dynamic values via `dpi_scale`.
 
-## 3. 窗口操作与点击流程
-1. **激活窗口**：使用 `gw.getWindowsWithTitle('标题')` 获取窗口，执行 `restore()` 和 `activate()`。
-2. **坐标计算**：
+## 3. Window Operation & Click Flow
+1. **Activate Window**: Derive targeted window sequences parsing via `gw.getWindowsWithTitle('Title')`, triggering `restore()` and `activate()`.
+2. **Coordinate Calculations**:
 ```python
-win = gw.getWindowsWithTitle('微信')[0]
-# 计算窗口内某个点的逻辑坐标 (lx, ly)
-# 转换为物理坐标并点击
+win = gw.getWindowsWithTitle('WeChat')[0]
+# Compute specific points relative to inside window tracking local bounds as logical coordinates (lx, ly)
+# Transpose onto physical coords and proceed to click:
 px, py = lx / ljqCtrl.dpi_scale, ly / ljqCtrl.dpi_scale
 ljqCtrl.Click(px, py)
 ```
 
-## 4. 避坑指南
-- **⚠️ 一律使用物理坐标**：传给 ljqCtrl.Click/SetCursorPos 的坐标必须是物理坐标（=截图像素坐标）。从 pygetwindow 获取的逻辑坐标需先 `/ dpi_scale` 转换。禁止传入逻辑坐标。
-- **物理验证**：模拟操作前必须确保窗口已通过 `activate()` 置于前台。
-- **偏移量**：所有的相对偏移像素值（如“向右移动 10 像素”）同样需要除以 `dpi_scale`。
-- **坐标对齐**: 物理坐标 = 截图坐标；ljqCtrl 自动处理 DPI 换算，禁止手动重复计算。
-- **⚠️ 窗口坐标转换陷阱**：使用 `win32gui.GetWindowRect(hwnd)` 获取的矩形包含标题栏和边框，而截图内容是客户区。点击截图内元素时，必须用 `win32gui.ClientToScreen(hwnd, (0, 0))` 获取客户区原点的屏幕坐标，再加上截图内坐标。禁止直接用 GetWindowRect 左上角 + 截图坐标。
-- **⚠️ win32 DPI 坐标陷阱**：未调用 `SetProcessDPIAware()` 时，`GetWindowRect/ClientToScreen/GetClientRect` 等拿到的窗口/客户区坐标通常是**逻辑坐标**；若后续截图或 `ljqCtrl` 使用的是物理像素，必须统一做 `坐标 / ljqCtrl.dpi_scale`。等价方案：先 `SetProcessDPIAware()`，之后全流程直接使用 raw 物理坐标，禁止逻辑/物理坐标混用。
-- **文本输入**：ljqCtrl 无 TypeText/SendKeys。向输入框键入文本：先点击/三击选中字段，再 `pyperclip.copy('文本'); ljqCtrl.Press('ctrl+v')`。
+## 4. Pitfall Guidelines
+- **⚠️ Always use physical coordinates**: Coords supplied to `ljqCtrl.Click`/`SetCursorPos` MUST be physical points (= screenshot pixel coords). Logical bounds fetched by pygetwindow implicitly mandate initial processing step sequences mapping scaling bounds integrating via `/ dpi_scale`. Inserting logical coords directly is STRICTLY PROHIBITED.
+- **Physical Verification**: Prior to orchestrating simulated ops, guarantee targeted windows operate fully inside active foreground matrices via programmatic invocations utilizing `activate()`.
+- **Offsets**: Apply analogous `/ dpi_scale` calculations towards strictly all relative offset derivations (e.g. "slide right 10 pixels").
+- **Coordinate Alignment**: Physical Coordinate = Screenshot Coordinate; ljqCtrl handles DPI conversions internally; repetitive manual coordinate computations are forbidden.
+- **⚠️ Window Coordinate Conversion Trap**: Dimensions output directly tracing via `win32gui.GetWindowRect(hwnd)` envelop bounding edges including titlebars alongside borders padding out framing constructs overlaying raw client regions mapped within screenshots natively tracking pure render extents without Chrome trims. When clicking elements within a screenshot area, invoke transformations via `win32gui.ClientToScreen(hwnd, (0, 0))` yielding client-origins mapped explicitly over targeted screens alongside appending screenshot local displacements natively. Directly appending internal image coords matching upper-left bounds rendered by standard `GetWindowRect` endpoints constitutes PROHIBITED behavior risking massive coordinate detours miscalibrations.
+- **⚠️ Win32 DPI Coordinate Trap**: Overlying code ignoring instances launching routines failing to explicitly set `SetProcessDPIAware()` inherently renders bounds queried using `GetWindowRect/ClientToScreen/GetClientRect` strictly across **logical coordinate** scaling dimensions; consequently forcing uniform mappings invoking implementations evaluating formulas enforcing `Location / ljqCtrl.dpi_scale`. Equivalent solution logic entails upfront explicit definitions launching `SetProcessDPIAware()`, proceeding utilizing unadulterated "raw" physical matrices globally discarding blended usage routines mapping physical/logical conversions intermixing scopes improperly. Prohibited.
+- **Text Input Processing**: Explicit integrations driving keyboard events omit automated input mapping macros typically encompassing TypeText/SendKeys. Entering text contents demands sequences: execute clicking sequence highlighting targets natively (maybe Triple-Clicks enabling overwrites) mapping `pyperclip.copy('Text Content'); ljqCtrl.Press('ctrl+v')` bindings inserting clipboard buffer data precisely.

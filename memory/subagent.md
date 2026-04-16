@@ -1,53 +1,53 @@
-# Subagent 调用 SOP
+# Subagent Invocation SOP
 
-## 文件IO协议
+## File IO Protocol
 
-- 目录：`temp/{task_name}/`（cwd在temp/时即`./{task_name}/`）
-- 启动：`python agentmain.py --task {name} [--input "短文本"] [--bg] [--llm_no N]`（cwd=代码根）
-- `--input`自动建目录+清旧output+写input.txt；长文本先手动写input.txt再启动(不带--input)
-- `--bg`后台(print PID exit)，可同一code_run内sleep后poll；非--bg禁合并启动+轮询
-- input：目标+约束即可，subagent同等智能。**禁写步骤/过度描述**，大量数据给路径
-- 通信：output.txt(append,`[ROUND END]`=轮完成) → 写reply.txt继续 → 不写10min退出。reply后输出为output1/2/3.txt(同格式)
-- 干预文件：`_stop`(当轮结束退出) | `_keyinfo`(注入working memory) | `_intervene`(追加指令)
-- **主agent空闲时应读output观察进度，必要时用干预文件纠偏，禁止无脑长时间sleep轮询**
-- 监察模式启动时加`--verbose`，output将包含工具执行结果，主agent可直接审查原始数据而非仅信任摘要
+- Directory: `temp/{task_name}/` (when cwd is temp/, it's `./{task_name}/`)
+- Startup: `python agentmain.py --task {name} [--input "short text"] [--bg] [--llm_no N]` (cwd = code root)
+- `--input` auto creates dir + clears old output + writes input.txt; For long text, manually write input.txt first then start (without --input).
+- `--bg` background (print PID exit), you can sleep then poll in the same code_run; without --bg, do not combine startup + polling.
+- input: Target + constraints are enough, subagent has equal intelligence. **Do not write steps/over-describe**, for large amounts of data provide paths.
+- Communication: output.txt (append, `[ROUND END]` = turn completed) → write reply.txt to continue → will exit if not written within 10min. After a reply, output goes to output1/2/3.txt (same format).
+- Intervention files: `_stop` (exits when current turn ends) | `_keyinfo` (injects to working memory) | `_intervene` (appends instructions)
+- **When idle, the main agent should read output to observe progress, and use intervention files to correct course if necessary. Mindless long-sleep polling is forbidden.**
+- Add `--verbose` when starting in supervisor mode, the output will contain tool execution results, allowing the main agent to directly review raw data rather than just trusting summaries.
 
-## 场景1：测试模式 - 行为验证
-**用途**：观察agent真实行为，修正RULES/L2/L3/SOP
-**流程**：创建test_path/写input.txt→启动subagent→轮询output.txt(2秒间隔)→验证→清理重复
-**测试原则**：只给目标，不提示位置/不诱导做法，观察自主选择
-**修正闭环**：发现问题→设计测试→定位根源(RULES/L2/L3/SOP)→patch修正→验证
-**技术要点**：Insight优先级>SOP；subagent的cwd=temp/
-**两种测试**：
-- 测SOP质量：input指定SOP名（如"用ezgmail_sop查看最近3封未读邮件"），排除导航干扰，失败即SOP问题
-- 测导航能力：input只写目标，验证subagent能自主从insight找到正确SOP。禁止内联SOP内容
+## Scenario 1: Test Mode - Behavior Validation
+**Purpose**: Observe genuine agent behavior, fix RULES/L2/L3/SOP
+**Process**: Create test_path/write input.txt → start subagent → poll output.txt (2s intervals) → validate → clear repeats
+**Testing Principle**: Only give target, do not hint at location/induce approach, observe autonomous choices.
+**Correction Loop**: Discover issue → Design test → Locate root cause (RULES/L2/L3/SOP) → Patch correction → Verify
+**Technical Keys**: Insight priority > SOP; subagent cwd = temp/
+**Two types of tests**:
+- Test SOP quality: input specifies SOP name (e.g., "Use ezgmail_sop to view latest 3 unread emails"), eliminates navigation interference, failure means SOP issue.
+- Test Navigation ability: input only writes target, verifies subagent can independently find the right SOP from insight. Inlining SOP content is prohibited.
 
-## 场景2：Map模式 - 并行处理
-**用途**：将N个独立同构子任务分发给各自的subagent处理
-**核心优势**：独立上下文。避免处理文档A的长上下文污染处理文档B的质量
-**约束**：
-- 文件系统共享是优点：不同agent处理不同输入文件，产生不同输出文件
-- 共享资源冲突：键鼠不可共享；浏览器暂时不可并行使用，避免同时操作同一标签页
-- 不满足map模式的任务 → 主agent顺序执行即可，别用subagent
-**标准流程（map-reduce）**：
-1. 主agent准备阶段：爬取/dump数据，存为多个独立输入文件
-2. 分发：对每个文件启动一个subagent处理（主agent自己也可以处理其中一个）
-3. 收集：等所有subagent完成，主agent读取各输出文件，汇总结果
+## Scenario 2: Map Mode - Parallel Processing
+**Purpose**: Distribute N independent isomorphic subtasks to their respective subagents for processing.
+**Core Advantage**: Independent context. Avoids long context from processing Document A polluting the quality of processing Document B.
+**Constraints**:
+- File system sharing is a plus: different agents process different input files, producing different output files.
+- Shared resource conflicts: Keyboard/mouse cannot be shared; browser temporarily cannot be used in parallel to avoid interacting with the same tab simultaneously.
+- Tasks that don't fit map mode → Main agent executes sequentially, don't use subagents.
+**Standard Flow (map-reduce)**:
+1. Main agent prep phase: Crawl/dump data, save as multiple independent input files.
+2. Distribution: Start a subagent for each file (main agent can also process one itself).
+3. Collection: Wait for all subagents to complete, main agent reads output files to aggregate results.
 
-## subagent内部plan_mode使用
-**原则**：subagent本身是完整agent，接收多步骤任务时应在内部创建plan管理执行
-**触发条件**:任务包含3个以上子步骤、子步骤之间有依赖关系、需要checkpoint来恢复执行
-**实现方式**：
-1. **主agent创建subagent时**：在input.txt中说明任务包含多个步骤，建议使用plan_mode
-2. **subagent内部执行**：检测到多步骤任务后，创建 `./subagent_plan.md` 并使用plan_mode执行
-3. **主agent监控**：只关注最终结果（output*.txt），不需要关心subagent内部如何执行
-4. **文件传递机制**：主agent创建subagent时在task_dir中生成 `context.json`，包含所有文件的**绝对路径**
-   **⚠ subagent启动后第一步必须读取context.json**
-   **⚠ 所有文件操作必须使用context.json中的绝对路径**
-**格式示例**：
+## Subagent Internal plan_mode Usage
+**Principle**: The subagent itself is a complete agent, when receiving multi-step tasks it should internally create a plan to manage execution.
+**Trigger conditions**: Task contains 3+ sub-steps, sub-steps have dependencies, checkpoints needed to resume.
+**Implementation**:
+1. **When main agent creates subagent**: Specify in input.txt that the task has multiple steps and recommend using plan_mode.
+2. **Subagent internal execution**: Upon detecting a multi-step task, create `./subagent_plan.md` and use plan_mode to execute.
+3. **Main agent monitoring**: Only focus on final results (output*.txt), no need to care how the subagent executes internally.
+4. **File passing mechanism**: When creating the subagent, the main agent generates `context.json` in the task_dir containing **absolute paths** to all files.
+   **⚠ The first step after the subagent starts MUST be reading context.json**
+   **⚠ All file operations MUST use the absolute paths from context.json**
+**Format Example**:
 ```json
 {
-  "task": "任务描述",
+  "task": "Task description",
   "work_dir": "/absolute/path/to/plan_dir/",
   "input_files": {
     "paper_info": "/absolute/path/to/paper_info.txt"
@@ -56,6 +56,6 @@
     "pdf": "/absolute/path/to/paper.pdf",
     "report": "/absolute/path/to/paper_report.md"
   },
-  "dependencies": ["paper_info.txt必须存在"]
+  "dependencies": ["paper_info.txt must exist"]
 }
 ```

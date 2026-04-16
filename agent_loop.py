@@ -25,8 +25,8 @@ class BaseHandler:
             return ret
         elif tool_name == 'bad_json': return StepOutcome(None, next_prompt=args.get('msg', 'bad_json'), should_exit=False)
         else:
-            yield f"未知工具: {tool_name}\n"
-            return StepOutcome(None, next_prompt=f"未知工具 {tool_name}", should_exit=False)
+            yield f"Unknown tool: {tool_name}\n"
+            return StepOutcome(None, next_prompt=f"Unknown tool {tool_name}", should_exit=False)
 
 def json_default(o):
     if isinstance(o, set): return list(o)
@@ -51,7 +51,7 @@ def agent_runner_loop(client, system_prompt, user_input, handler, tools_schema, 
     while turn < handler.max_turns:
         turn += 1; md = '**' if verbose else ''
         yield f"{md}LLM Running (Turn {turn}) ...{md}\n\n"
-        if turn%10 == 0: client.last_tools = ''  # 每10轮重置一次工具描述，避免上下文过大导致的模型性能下降
+        if turn%10 == 0: client.last_tools = ''  # Reset tool description every 10 turns to prevent context bloat degradation
         response_gen = client.chat(messages=messages, tools=tools_schema)
         if verbose:
             response = yield from response_gen
@@ -70,7 +70,7 @@ def agent_runner_loop(client, system_prompt, user_input, handler, tools_schema, 
             tool_name, args, tid = tc['tool_name'], tc['args'], tc.get('id', '')
             if tool_name == 'no_tool': pass
             else: 
-                if verbose: yield f"🛠️ 正在调用工具: `{tool_name}`  📥参数:\n````text\n{get_pretty_json(args)}\n````\n"
+                if verbose: yield f"🛠️ Calling tool: `{tool_name}`  📥Args:\n````text\n{get_pretty_json(args)}\n````\n"
                 else: yield f"🛠️ {tool_name}({_compact_tool_args(tool_name, args)})\n\n\n"
             handler.current_turn = turn
             gen = handler.dispatch(tool_name, args, response, index=ii)
@@ -86,7 +86,7 @@ def agent_runner_loop(client, system_prompt, user_input, handler, tools_schema, 
                 exit_reason = {'result': 'EXITED', 'data': outcome.data}; break
             if not outcome.next_prompt: 
                 exit_reason = {'result': 'CURRENT_TASK_DONE', 'data': outcome.data}; break
-            if outcome.next_prompt.startswith('未知工具'): client.last_tools = ''
+            if outcome.next_prompt.startswith('Unknown tool'): client.last_tools = ''
             if outcome.data is not None and tool_name != 'no_tool': 
                 datastr = json.dumps(outcome.data, ensure_ascii=False, default=json_default) if type(outcome.data) in [dict, list] else str(outcome.data) 
                 tool_results.append({'tool_use_id': tid, 'content': datastr})
@@ -104,8 +104,8 @@ def _clean_content(text):
     def _shrink_code(m):
         lines = m.group(0).split('\n')
         lang = lines[0].replace('```','').strip()
-        body = [l for l in lines[1:-1] if l.strip()]  # 去掉```行和空行
-        if len(body) <= 6: return m.group(0)  # 短代码保留
+        body = [l for l in lines[1:-1] if l.strip()]  # Remove ``` lines and empty lines
+        if len(body) <= 6: return m.group(0)  # Keep short code
         preview = '\n'.join(body[:5])
         return f'```{lang}\n{preview}\n  ... ({len(body)} lines)\n```'
     text = re.sub(r'```[\s\S]*?```', _shrink_code, text)
@@ -115,7 +115,7 @@ def _clean_content(text):
 
 def _compact_tool_args(name, args):
     a = {k: v for k, v in args.items() if k != '_index'}
-    for k in ('path',): # 只缩短路径
+    for k in ('path',): # Only shorten path
         if k in a: a[k] = os.path.basename(a[k])
     if name == 'update_working_checkpoint': s = a.get('key_info', ''); return (s[:60]+'...') if len(s)>60 else s
     s = json.dumps(a, ensure_ascii=False); return (s[:120]+'...') if len(s)>120 else s

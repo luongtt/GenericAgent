@@ -1,31 +1,31 @@
 # TMWebDriver SOP
 
-- 禁止import，直接用web_scan/web_execute_js工具。本文件只记录特性和坑。
-- 底层：`../TMWebDriver.py`通过Chrome扩展(非Tampermonkey)接管用户浏览器（保留登录态/Cookie）
-- 非Selenium/Playwright，保留用户浏览器登录态
-- ⚠扩展更新后旧tab的content script不重载→需刷新页面
+- Forbidden to import directly, use `web_scan`/`web_execute_js` tools. This file records features and pitfalls.
+- Low-level: `../TMWebDriver.py` takes over user's browser via Chrome extension (not Tampermonkey) (keeps Login State/Cookies)
+- Not Selenium/Playwright; retains user browser logged-in state.
+- ⚠ Ext update won't reload content scripts in old tabs → page refresh required.
 
-## 通用特性
-- ⚠web_execute_js里使用`await`时需**显式`return`**才能拿到返回值（底层async包裹，不写return则返回null）
-- ✅web_scan自动穿透同源iframe；跨域iframe需CDP或postMessage（见下方章节）
+## General Features
+- ⚠ When using `await` in `web_execute_js`, you must **explicitly `return`** to get a value (due to underlying async wrapper, no return gives null).
+- ✅ `web_scan` automatically penetrates same-origin iframes; cross-origin iframes require CDP or postMessage (see section below).
 
-## 限制(isTrusted)
-- JS事件`isTrusted=false`，敏感操作（如文件上传/部分按钮）可能被拦截；这类场景首选**CDP桥**
-- ⚠JS点击按钮打不开新tab→可能是浏览器弹窗拦截，换CDP点击试试
-- 文件上传：JS无法填充`<input type=file>`；首选CDP batch：getDocument→querySelector→DOM.setFileInputFiles，备选ljqCtrl物理点击
-- 需转物理坐标时：`physX = (screenX + rect中心x) * dpr`，`physY = (screenY + chromeH + rect中心y) * dpr`；其中 `chromeH = outerHeight - innerHeight`
+## Restrictions (isTrusted)
+- JS event `isTrusted=false`: sensitive ops (like file upload/certain buttons) may be blocked; **CDP Bridge** is preferred for these scenarios.
+- ⚠ JS button clicking doesn't open a new tab → may be blocked by browser popup blockers, try clicking via CDP instead.
+- File upload: JS cannot populate `<input type=file>`. Preferred: CDP batch (getDocument → querySelector → DOM.setFileInputFiles). Backup: `ljqCtrl` physical click.
+- When generating physical coordinates: `physX = (screenX + rect centerX) * dpr`, `physY = (screenY + chromeH + rect centerY) * dpr`; where `chromeH = outerHeight - innerHeight`.
 
-## 导航
-- `web_scan` 仅读当前页不导航，切换网站用 `web_execute_js` + `location.href='url'`
+## Navigation
+- `web_scan` strictly reads current page and doesn't navigate. Change websites using `web_execute_js` + `location.href='url'`.
 
-## Google图搜
-- class名混淆禁硬编码，点击结果用 `[role=button]` div
-- web_scan过滤边栏，弹出后用JS：文本`document.body.innerText`，大图遍历img按`naturalWidth`最大取src
-- "访问"链接：遍历a找`textContent.includes('访问')`的href
-- 缩略图：`img[src^="data:image"]`直接提取；大图src可能截断用`return img.src`
+## Google Image Search
+- Class names are obfuscated; hard-coding is forbidden. Click results via `[role=button]` div.
+- `web_scan` filters out sidebars. After popup, use JS: Text `document.body.innerText`, traverse `img` for largest image `naturalWidth` for src.
+- "Visit" link: Traverse `a` to find href where `textContent.includes('Visit')` or similar depending on the local language.
+- Thumbnails: Extract `img[src^="data:image"]` directly. Large image src might be truncated so `return img.src` in JS.
 
-## Chrome下载PDF
-场景：PDF链接在浏览器内预览而非下载
+## Chrome PDF Download
+Scenario: PDF link previews in browser instead of downloading
 ```js
 fetch('PDF_URL').then(r=>r.blob()).then(b=>{
   const a=document.createElement('a');
@@ -34,89 +34,88 @@ fetch('PDF_URL').then(r=>r.blob()).then(b=>{
   a.click();
 });
 ```
-注意：需同源或CORS允许，跨域先导航到目标域再执行
+Note: Must be same-origin or CORS permitted. For cross-origin, navigate to target domain before execution.
 
-## Chrome后台标签节流
-- 后台标签中`setTimeout`被Chrome intensive throttling延迟到≥1min/次，扩展脚本中避免依赖setTimeout轮询
+## Chrome Background Tab Throttling
+- `setTimeout` in background tabs is throttled by Chrome intensive throttling to ≥1min/time. Avoid relying on `setTimeout` polling in extension scripts.
 
-## CDP桥(tmwd_cdp_bridge扩展) ⭐首选
-扩展路径：`assets/tmwd_cdp_bridge/`(需安装，含debugger权限)
-⚠TID约定标识：首次运行自动生成到`assets/tmwd_cdp_bridge/config.js`(已gitignore)，扩展通过manifest引用
-调用：`web_execute_js` script直传JSON字符串（工具层自动识别对象格式，走WS→background.js cmd路由）
+## CDP Bridge (tmwd_cdp_bridge extension) ⭐Preferred
+Extension path: `assets/tmwd_cdp_bridge/` (needs to be installed, contains debugger permissions)
+⚠ TID convention: Automatically generated to `assets/tmwd_cdp_bridge/config.js` on first run (gitignored), referenced via manifest.
+Calls: `web_execute_js` passes JSON string directly to `script` (Tool layer auto detects object format, routing via WS→background.js cmd).
 ```js
-// 直接传JSON字符串作为script参数，无需DOM操作
+// Pass JSON string directly as script param, no DOM ops needed
 web_execute_js script='{"cmd": "cookies"}'
 web_execute_js script='{"cmd": "tabs"}'
 web_execute_js script='{"cmd": "cdp", "tabId": N, "method": "...", "params": {...}}'
 web_execute_js script='{"cmd": "batch", "commands": [...]}'
-// 返回值直接是JSON结果
+// Return value is pure JSON result
 ```
-通信方式：⭐JSON字符串直传(首选) | TID DOM方式(TID元素+MutationObserver，web_scan/execute_js底层依赖)
-单命令：`{cmd:'tabs'}` | `{cmd:'cookies'}` | `{cmd:'cdp', tabId:N, method:'...', params:{...}}` | `{cmd:'management', method:'list|reload|disable|enable', extId:'...'}`
-- management：list返回所有扩展信息；reload/disable/enable需传extId
-- ⭐batch混合：`{cmd:'batch', commands:[{cmd:'cookies'},{cmd:'tabs'},{cmd:'cdp',...},...]}`
-  - 返回`{ok:true, results:[...]}`，一次请求多命令，CDP懒attach复用session
-  - 子命令会自动继承外层batch的tabId（如cookies命令可正确获取当前页面URL）
-  - `$N.path`引用第N个结果字段(0-indexed)，如`"nodeId":"$2.root.nodeId"`
-  - ⚠batch前序命令失败时，后续`$N`引用会静默变成undefined；要检查results数组中每项的ok状态
-  - 典型文件上传：getDocument(**depth:1**) → querySelector(`input[type=file]`) → setFileInputFiles
-  - 思想：
-    - 同一链路内保持nodeId来源一致，不混用querySelector路径与performSearch路径
-    - 上传后前端框架可能不感知，必要时JS补发`input`/`change`事件
-    - 上传前检查`input.accept`；多input时用accept/父容器语义区分
-    - 等待元素优先用`DOM.performSearch('input[type=file]')`做轻量轮询
-    - 瞬态input的核心是**缩短发现→setFileInputFiles时间窗**：优先同batch完成；再不行用DOM事件监听；猴子补丁仅作兜底思路
-  - ⚠tabId：CDP默认sender.tab.id(当前注入页)，跨tab需显式tabId或先batch内tabs查
-- ⭐跨tab无需前台：指定tabId即可操作后台标签页
+Comm Mode: ⭐JSON string direct passing (Preferred) | TID DOM Mode (TID elem + MutationObserver, historically relied upon by web_scan/execute_js)
+Single cmds: `{cmd:'tabs'}`, `{cmd:'cookies'}`, `{cmd:'cdp', tabId:N, method:'...', params:{...}}`, `{cmd:'management', method:'list|reload|disable|enable', extId:'...'}`
+- management: list returns all extension info; reload/disable/enable requires extId.
+- ⭐ batch mix: `{cmd:'batch', commands:[{cmd:'cookies'},{cmd:'tabs'},{cmd:'cdp',...},...]}`
+  - Returns `{ok:true, results:[...]}`, allowing multi-commands in one request, lazy attaching CDP for session reuse.
+  - Subcommands auto inherit the tabId of the outer batch (e.g. `cookies` cmd can accurately get current page URL).
+  - `$N.path` references the Nth result field (0-indexed), e.g., `"nodeId":"$2.root.nodeId"`.
+  - ⚠ If a preceding batch command fails, subsequent `$N` references silently turn `undefined`. Check the `ok` status of each item in the results array.
+  - Typical file upload: `getDocument(depth:1)` → `querySelector(input[type=file])` → `setFileInputFiles`
+  - Ideas:
+    - Retain nodeId consistency inside a single chain. Do not mix `querySelector` path with `performSearch` path.
+    - Front-end frameworks might not detect the upload. Manually dispatch `input`/`change` events via JS if necessary.
+    - Verify `input.accept` before uploading; distinguish multi-inputs using accept attributes or parent semantics.
+    - To await elements, lightweight polling via `DOM.performSearch('input[type=file]')` is preferred.
+    - Core logic of short-lived inputs is **minimizing discovery until setFileInputFiles window**. Try in the same batch, fallback to DOM event listeners. Monkey patching is an absolute last resort.
+  - ⚠ tabId: Default CDP is sender.tab.id (currently injected page). Cross-tabs need explicit tabId or nested batch using `tabs` to check.
+- ⭐ Cross-tab background access: Operating on background tabs is possible by specifying `tabId`.
 
-## CDP点击完整生命周期（未验证，BBS#23）
-- 通用点击需**三事件序列**：mouseMoved → mousePressed → mouseReleased（间隔50-100ms）
-  - 省略mouseMoved会导致MUI Tooltip/Ant Design Dropdown等hover依赖组件失效
-  - ⚠autofill释放是特例，只需mousePressed即可（见下方autofill章节）
-- 坐标修正（页面有transform:scale/zoom时）：
+## Entire CDP Click Lifecycle (Unverified, BBS#23)
+- Generic click entails **a 3-event sequence**: mouseMoved → mousePressed → mouseReleased (50-100ms interval).
+  - Omitting `mouseMoved` might invalidate hover-dependent elements like MUI Tooltips / Ant Design Dropdowns.
+  - ⚠ Autofill release is an exception: Requires only `mousePressed` (see Autofill section below).
+- Coordinate patching (When page has transform:scale/zoom):
   ```js
   var scale = window.visualViewport ? window.visualViewport.scale : 1;
   var zoom = parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
   var realX = x * zoom; var realY = y * zoom;
   ```
-- iframe内元素CDP点击：坐标需合成 `finalX = iframeRect.x + elRect.x`
-  - 跨域iframe拿不到contentDocument：
-  - ⚠`Target.getTargets`/`Target.attachToTarget`在CDP桥中返回"Not allowed"(chrome.debugger权限限制)
-  - ⭐**已验证方案**：`Page.getFrameTree`找iframe frameId → `Page.createIsolatedWorld({frameId})`获取contextId → `Runtime.evaluate({expression, contextId})`在iframe中执行JS
-  - batch链式引用：`$0.frameTree.childFrames`遍历找url匹配的frame，`$1.executionContextId`传给evaluate
-  - postMessage中继方案仅在content script已注入iframe时有效，第三方支付iframe通常无注入
+- Clicking elements within an iframe via CDP require relative syntheses: `finalX = iframeRect.x + elRect.x`.
+  - Cross-origin iframes cannot acquire contentDocument.
+  - ⚠ `Target.getTargets`/`Target.attachToTarget` returns "Not allowed" in CDP bridge (restricted by chrome.debugger perms).
+  - ⭐ **Verified Scheme**: `Page.getFrameTree` to find iframe frameId → `Page.createIsolatedWorld({frameId})` to acquire contextId → `Runtime.evaluate({expression, contextId})` executes JS in iframe.
+  - Batch chained reference approach: Use `$0.frameTree.childFrames` traversals finding matching frame URLs, then mapping `$1.executionContextId` to evaluate.
+  - postMessage relays only operate if content scripts are already injected into the iframe (3rd party payment iframes are often unaided).
 
-## CDP文本输入（未验证，BBS#23）
-- `insertText`快但无key事件；受控组件需补dispatch `input`事件
-- 需完整键盘模拟时用`dispatchKeyEvent`逐键派发
+## CDP Text Input (Unverified, BBS#23)
+- `insertText` is fast but drops key events. Controlled inputs dictate patching `input` event dispatch mappings.
+- Rely on `dispatchKeyEvent` sequences for rigorous full keyboard mocking.
 
-## CDP DOM域穿透 closed Shadow DOM（未验证，BBS#24/#25）
-- `DOM.getDocument({depth:-1, pierce:true})` 穿透所有Shadow边界（含closed）
-- `DOM.querySelector({nodeId, selector})` 定位 → `DOM.getBoxModel({nodeId})` 取坐标
-- getBoxModel返回content八值[x1,y1,...x4,y4]，中心用**四点平均**：centerX=sum(x)/4, centerY=sum(y)/4
-  - ⚠不能简化为对角线平均——元素有transform:rotate/skew时四点非矩形
-- querySelector**不能跨Shadow边界写组合选择器**，需分步：先找host再在其shadow内找子元素
-- ⚠nodeId在DOM变更后失效 → 用`backendNodeId`更稳定，或重新getDocument刷新
+## CDP DOM Layer Penetration over Closed Shadow DOM (Unverified, BBS#24/#25)
+- `DOM.getDocument({depth:-1, pierce:true})` penetrates all Shadow demarcations (including closed).
+- `DOM.querySelector({nodeId, selector})` locates → `DOM.getBoxModel({nodeId})` pulls coordinates
+- getBoxModel yields 8 content points `[x1,y1,...x4,y4]`, utilize the **four point average** to approximate centroids: `centerX=sum(x)/4`, `centerY=sum(y)/4`.
+  - ⚠ Simplistic diagonal average logic fails when elements sustain transform:rotate/skew manipulations producing arbitrary shapes.
+- querySelector **cannot interpret complex combinators vaulting across Shadow boundaries**, step separately: initially locate host and then inspect components inside its shadow.
+- ⚠ `nodeId`s invalidate after DOM augmentations → Prioritize semantic `backendNodeId`s or invoke `getDocument` refreshes.
 
+## Autofill Capture & Login
+Detection: `web_scan` yields inputs adorned with `data-autofilled="true"`, wherein value shows a dummy obfuscated placeholder (not the true string, blocked by Chrome security limits requiring manual physical click simulation interactions to unseal).
+- ⚠ **Prerequisite Criterion: CDP `Page.bringToFront` MUST forcibly foreground tab**, since Chrome releases protected autofill credentials merely in foregrounded tabs, ignoring actions to background environments.
+- ⭐ **One-Click Seal Breach & Auth Launch**: `bringToFront` → `mousePressed` clicking any particular field (no `Released` reqs needed, a single prod unlocks the entire page) → Sleep 500ms → Synthetic DOM inject `input`/`change` event cascades → Proc Login trigger.
 
-## autofill获取与登录
-检测：web_scan输出input带`data-autofilled="true"`，value显示为受保护提示(非真实值，Chrome安全保护需点击释放)
-- ⚠**前置条件：必须先CDP `Page.bringToFront` 切tab到前台**，Chrome仅在前台tab释放autofill保护值，后台tab物理点击无效
-- ⭐**一键释放与登录**：bringToFront → mousePressed点任一字段(无需Released，一个释放全页) → 等500ms → 补input/change事件 → 点登录
+## Captcha/Visual Page Snapshot Methods
+- ⭐ Top Preference CDP Screenshots: Use `Page.captureScreenshot` (format: 'png') to extract base64 encodings directly. Works across un-foreground context boundaries providing high-res frames.
+- Captcha canvas/img blocks: Read JS instances optimally using pristine `canvas.toDataURL()` buffers.
 
-## 验证码/页面视觉截图
-- ⭐首选CDP截图：`Page.captureScreenshot`(format:'png')→返回base64，无需前台/后台tab也行，全页高清
-- 验证码canvas/img：JS `canvas.toDataURL()` 直接拿base64最干净
+## simphtml & TMWebDriver Tuning Guidelines
+- `simphtml` diagnostics warrant injecting scripts into standard browser engines via `code_run` operations (since pure Python modules fake DOM structures feebly).
+- Routine setups: `d=TMWebDriver()`, `d.set_session('url_pattern')`, `d.execute_js(code)` → Emits `{'data': value}`.
+- `simphtml`: Execution routines leveraging `str(simphtml.optimize_html_for_tokens(html))` (where return types mandate conversion via `str()` casting due to BS4 tag constructs).
+- ⚠ **DOMRect Overlap Discrepancies**: Occasional contextual execution traces omit `rect.x/y` attributes yielding NaN returns over bounds comparisons (exclusively emitting left/top). Patch fixes via implementation parsing logic routines: e.g. `rect.x ?? rect.left`.
 
-## simphtml与TMWebDriver调试
-- simphtml调试必须通过`code_run`注入JS到真实浏览器（Python端无法模拟DOM）
-- `d=TMWebDriver()`, `d.set_session('url_pattern')`, `d.execute_js(code)` → 返回`{'data': value}`
-- simphtml：`str(simphtml.optimize_html_for_tokens(html))` — 返回BS4 Tag需str()
-- ⚠**DOMRect坑(hasOverlap)**：某些上下文`rect.x/y`为undefined(只有left/top)，导致NaN→误判重叠。兼容：`rect.x ?? rect.left`
-
-## 连不上排查
-web_scan失败时按序排查：
-①扩展没装？→检查Chrome扩展列表(chrome://extensions)是否有TMWebDriver扩展
-  没找到→走web_setup_sop；找到→确认已启用
-②浏览器没开？→检查①对应的浏览器进程是否在跑(tasklist/ps)，没有则启动并打开正常URL（⚠about:blank等内部页不加载扩展）
-③WS后台挂了？→socket.connect_ex(('127.0.0.1',18766))非0即dead→手动`from TMWebDriver import TMWebDriver; TMWebDriver()`起master
+## Connection Troubleshooting Overviews
+Address `web_scan` linkage failures procedurally:
+① Extensions lacking? → Query extensions panel (chrome://extensions) examining if TMWebDriver persists.
+  Missing → Pursue integrations outlined inside `web_setup_sop`; Situated → Validate enabled parameters.
+② Browsers inactive? → Correlate active process threads verifying binaries (tasklist/ps) execution cycles, launching fresh if uninitialized traversing standard site scopes (⚠ Ignore initial internal system views viz. about:blank implementations loading no resources).
+③ WS Background termination? → Verifying `socket.connect_ex(('127.0.0.1',18766))` failure conditions yielding nonzero traces denoting dead endpoints → Spawning ad-hoc resets manually initiating via CLI: `from TMWebDriver import TMWebDriver; TMWebDriver()` to seed master logic instances.

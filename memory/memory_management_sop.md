@@ -1,90 +1,90 @@
-## 0. 核心公理 (Core Axioms - 最高优先级)
-1.  **行动验证原则 (Action-Verified Only)**
-    *   **定义**：任何写入 L1/L2/L3 的信息，必须源自**成功的工具调用结果**（如 `shell` 执行成功、`file_read` 确认内容存在、代码运行通过）。
-    *   **禁止**：严禁将模型的“固有知识”、“推理猜测”、“未执行的计划”或“未验证的假设”作为事实写入。
-    *   **口号**：**No Execution, No Memory. (无行动，不记忆)**
-2.  **神圣不可删改性 (Sanctity of Verified Data)**
-    *   **定义**：凡是经过行动验证的有效配置、避坑指南、关键路径，在重构（Refactoring/GC）时**严禁丢弃**。
-    *   **操作**：可以压缩文字、可以迁移层级（从 L2 移到 L3），但绝不能丢失信息的准确性和可追溯性。
-    *   记忆修改时请极度小心，尽量不要overwrite或code run。只能少量patch，改不动宁愿不改。
-3.  **禁止存储易变状态 (No Volatile State)**
-    *   **定义**：严禁存储随时间/会话高频变化的数据。
-    *   **示例**：当前时间戳、临时 Session ID、正在运行的 PID、某个具体绝对路径、连接的设备信息
-4.  **最小充分指针 (Minimum Sufficient Pointer)**
-    *   上层只留能定位下层的最短标识，多一词即冗余。
+## 0. Core Axioms (Highest Priority)
+1.  **Action-Verified Only**
+    *   **Definition**: Any information written to L1/L2/L3 must originate from **successful tool execution results** (e.g., successful `shell` execution, confirmed `file_read` content, passed code execution).
+    *   **Prohibited**: It is strictly forbidden to write the model's "inherent knowledge", "inferred guesses", "unexecuted plans", or "unverified assumptions" as facts.
+    *   **Slogan**: **No Execution, No Memory.**
+2.  **Sanctity of Verified Data**
+    *   **Definition**: Valid configurations, pitfalls, and critical paths that have been verified by action **must not be discarded** during refactoring (Refactoring/GC).
+    *   **Operation**: You can compress text, you can move hierarchies (from L2 to L3), but you must never lose the accuracy and traceability of information.
+    *   Please be extremely careful when modifying memory. Try not to use overwrite or code run. Only small patches are allowed. If it's hard to change, it's better not to change it.
+3.  **No Volatile State**
+    *   **Definition**: It is strictly forbidden to store data that changes frequently over time or across sessions.
+    *   **Examples**: Current timestamps, temporary Session IDs, running PIDs, specific absolute paths, connected device information.
+4.  **Minimum Sufficient Pointer**
+    *   The upper layer only keeps the shortest identifier that can locate the lower layer. One extra word is redundant.
 ---
-## 记忆层级架构
+## Memory Hierarchy Architecture
 ```
-L1: global_mem_insight.txt (极简索引层 - 严格控制 ≤30 行)  
-    ↓ 导航指向 (Pointer)  
-L2: global_mem.txt (事实库层 - 现短但会膨胀)  
-    ↓ 详细引用 (Reference)  
-L3: ../memory/ (记录库层 - 包含 .md/.py 等各类文件)  
-L4: ../memory/L4_raw_sessions/ (历史会话层 - scheduler反射自动收集，可定位过往上下文)  
+L1: global_mem_insight.txt (Minimalist Index Layer - Strictly controlled ≤30 lines)
+    ↓ Pointer
+L2: global_mem.txt (Fact Base Layer - Short now but will expand)
+    ↓ Detailed Reference
+L3: ../memory/ (Record Base Layer - Contains various files like .md/.py)
+L4: ../memory/L4_raw_sessions/ (Historical Session Layer - Auto-collected by scheduler reflection, can locate past context)
 ```
 ---
-## 各层职责与原则
-### L1：全局内存索引 (global_mem_insight.txt)
-**职责**：为 L2 和 L3 提供极简导航索引，确保关键能力可被发现。
-**特征**：
-- 体积限制：≤ 30 行（硬约束），< 1k tokens（期望）。严禁填写细节（除非极高频任务）
-- 内容：两层「场景关键词→记忆定位」映射 + RULES（红线规则 + 高频犯错点）
-  - 第一层：高频场景 key→value（直接给出 sop/py/L2 section 名），自包含名称只写一词不重复翻译
-  - 第二层：低频场景仅列关键词，需要时 read L2 或 ls L3 自行定位
-  - 核心：场景触发词极重要（不索引则不知有此能力），但严禁写How-to细节
-  - RULES：压缩版避坑准则，包含：
-    - 红线规则（致命型）：违反会导致进程终止或系统崩溃（如 `禁无条件杀python(会杀自己)`）
-    - 红线规则（隐蔽型）：违反不报错但产生错误结果（如 `搜索用google不用百度`）
-    - 高频犯错点：容易遗忘的关键约束（如 `es(PATH有)` 防止找路径）
-- 更新：L2/L3 有新增/删除时，判断频率归入对应层。修改时请极度小心，不允许overwrite或code run。只能少量patch，改不动宁愿不改。
-**禁止**：严禁写入密码、API Key。允许内联非敏感触发参数（如代理端口）。不写 "How to" 或详细解释。严禁包含特定任务的技术细节（特定任务细节应该在L3）。更加严禁写入日志记录！
+## Responsibilities and Principles of Each Layer
+### L1: Global Memory Index (global_mem_insight.txt)
+**Responsibility**: Provide minimalist navigation index for L2 and L3 to ensure critical capabilities can be discovered.
+**Characteristics**:
+- Size limit: ≤ 30 lines (hard constraint), < 1k tokens (expected). Strictly forbidden to fill in details (unless extremely high frequency task)
+- Content: Two layers of "Scenario Keywords → Memory Location" mapping + RULES (Red line rules + High frequency mistakes)
+  - First layer: High frequency scenario key→value (directly give sop/py/L2 section name), self-contained names are just one word, do not repeatedly translate.
+  - Second layer: Low frequency scenarios only list keywords, read L2 or ls L3 to locate when needed.
+  - Core: Scenario trigger words are extremely important (without indexing, you won't know this capability exists), but writing How-to details is strictly prohibited.
+  - RULES: Compressed version of pitfalls, including:
+    - Red line rules (Fatal): Violations will cause process termination or system crash (e.g., `Forbid unconditional kill python (will kill itself)`).
+    - Red line rules (Hidden): Violations do not report errors but produce wrong results (e.g., `Search uses google, not baidu`).
+    - High frequency mistakes: Key constraints that are easy to forget (e.g., `es(PATH)` to prevent path searching).
+- Updating: When L2/L3 has additions/deletions, judge the frequency and assign it to the corresponding layer. Be extremely careful when modifying. Overwrite or code run operations are strictly prohibited. Use only small patches; if modifying becomes difficult, do not change it at all.
+**Prohibited**: Strictly forbidden to write passwords or API Keys. Inline non-sensitive trigger parameters (like proxy port) are allowed. Do not write "How to" or detailed explanations. Strictly forbidden to contain specific task technical details (specific task details should be in L3). Even more strictly forbidden to write operation logs!
 ---
-### L2：全局事实库 (global_mem.txt)
-**职责**：存储全局环境性事实（路径、凭证、配置、常量等）。
-**特征**：
-- 趋势：随环境扩展而膨胀（可接受）
-- 内容：按 `## [SECTION]` 组织的事实条目
-- 同步：变化时更新 L1 的相应 TOPIC 导航行，只能导航
-**禁止**：禁止存储易变状态、禁止存储猜测、严禁存储大模型可推理的通用常识
+### L2: Global Fact Base (global_mem.txt)
+**Responsibility**: Store global environmental facts (paths, credentials, configs, constants, etc.).
+**Characteristics**:
+- Trend: Expands as the environment scales (acceptable)
+- Content: Fact entries organized by `## [SECTION]`
+- Synchronization: Update corresponding TOPIC navigation lines in L1 when changes occur; it can only act as navigation.
+**Prohibited**: Forbidden to store volatile states. Forbidden to store guesses. Strictly forbidden to store general common sense that the large model can deduce.
 ---
-### L3：任务级精简记录库 (../memory/)
-职责：补充 L1/L2 无法容纳、但对**特定任务**未来复用至关重要的少量详细信息。内容必须在满足复用需求的前提下**尽可能短**。
-原则：
-- 只记录：跨会话仍重要、且难以通过少量 file_read / web_scan / 简单脚本快速重建的要点。
-- 优先写：该任务特有的隐藏前置条件、典型易踩坑点，一旦遗忘会导致高成本重试的信息。
-- 不记录：普通操作步骤、可在几步探测中重新获得的路径或状态信息。
-形式：
-- SOP（*_sop.md）：为单一任务或小类任务保留极简的「关键前置 + 典型坑」清单，避免长篇教程。
-- 工具脚本（*.py）：仅封装高复用、逻辑相对复杂且不希望每次都重新推理的处理流程。
+### L3: Task-level Essential Record Base (../memory/)
+Responsibility: Supplement a small amount of detailed information that cannot be accommodated in L1/L2 but is crucial for future reuse of **specific tasks**. Content must be **as brief as possible** while meeting reuse requirements.
+Principles:
+- Only record: Key points that remain important across sessions and are hard to quickly reconstruct via minimal file_read/web_scan/simple scripts.
+- Priority: Hidden prerequisites unique to the task, typical pitfalls, and information that, if forgotten, leads to high-cost retries.
+- Do not record: Ordinary operational steps, path or state info that can be regained within a few probing steps.
+Format:
+- SOP (*_sop.md): Preserve a minimalist "critical prerequisites + typical pitfalls" checklist for a single task or small category of tasks, avoiding lengthy tutorials.
+- Tool Scripts (*.py): Only encapsulate high-reuse, relatively complex processing flows that you don't want to deduce from scratch every time.
 ---
-## L1 ↔ L2/L3 同步规则
-| 操作 | L1 同步 |
+## L1 ↔ L2/L3 Synchronization Rules
+| Operation | L1 Synchronization |
 |---------|--------|
-| L2/L3 新增场景 | 判断频率：高频→第一层加 key→value；低频→第二层加关键词 |
-| L2/L3 删除场景 | 删除对应层的关键词/映射行 |
-| L2/L3 修改值 | 若不影响场景定位则不动 L1 |
-| 发现通用避坑规律 | 压缩为一句加入 RULES |
+| New Scenario in L2/L3 | Judge frequency: High frequency → Add key→value to 1st layer; Low frequency → Add keyword to 2nd layer |
+| Delete Scenario in L2/L3 | Delete corresponding keyword/mapping line |
+| Modify Value in L2/L3 | If scenario location is unaffected, do not touch L1 |
+| Found Common Pitfall Pattern | Compress into one sentence and add to RULES |
 
-> **同步红线**：L1 只写关键词/名称，禁搬细节。需要评估L1中的token数和索引效用。
+> **Synchronization Red Line**: L1 strictly contains keywords/names; transferring details is prohibited. Evaluate token count and index utility in L1 on an ongoing basis.
 
 ---
-## 信息分类快速决策树
+## Fast Decision Tree for Info Classification
 ```
-"这条信息该放哪层？"
+"Which layer should this info go to?"
 
-是『环境特异性事实』? (IP、非标路径、凭证、ID、API 密钥等，大模型 Zero-shot 无法生成准确)
+Is it an "Environment-specific fact"? (IP, irregular path, credential, ID, API key, etc., things LLM zero-shot cannot generate accurately)
   ├─ YES → L2 (global_mem.txt)
-  │        然后 → 按频率归入 L1 第一层(key→value)或第二层(仅关键词)
+  │        Then → Assign to L1 1st layer (key→value) or 2nd layer (keywords only) by frequency
   │
   └─ NO
        ↓
-       是『通用操作规律』? (全局性避坑指南、排查方法、不针对特定任务的通用准则)
-       ├─ YES → L1 [RULES] (仅限 1 句压缩准则)
+       Is it a "General operation rule"? (Global pitfalls, troubleshooting methods, general rules not specific to a single task)
+       ├─ YES → L1 [RULES] (Limited to 1 compressed sentence rule)
        │
        └─ NO
             ↓
-            是『特定任务技术』? (艰难尝试才能成功，且未来还能用到的任务，如：微信解析参数、特定游戏坐标、临时工具配置)
-            ├─ YES → L3 (../memory/ 专项 SOP 或脚本)
+            Is it "Specific task technique"? (Requires intense troubleshooting to succeed, and task might be reused later, e.g., WeChat parsing params, specific game coordinates, temp tool config)
+            ├─ YES → L3 (../memory/ Special SOP or script)
             │
-            └─ NO → 判定为『通用常识』或『冗余信息』: 严禁存储，直接丢弃
+            └─ NO → Deemed "Common sense" or "Redundant info": Storage strictly forbidden, discard directly
 ```

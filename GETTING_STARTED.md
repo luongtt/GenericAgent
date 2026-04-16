@@ -1,88 +1,88 @@
-# 🚀 新手上手指南
+# 🚀 Beginner's Quick Start Guide
 
-> 完全没接触过编程也没关系，跟着做就行。Mac / Windows 都适用。
+> It doesn't matter if you have zero programming experience, just follow along. Works for both Mac and Windows.
 >
-> 如果你已经有 Python 环境，直接跳到[第 2 步](#2-配置-api-key)。
+> If you already have a Python environment, skip directly to [Step 2](#2-configure-api-key).
 
 ---
 
-## 1. 安装 Python
+## 1. Install Python
 
 ### Mac
 
-打开「终端」（启动台搜索 "终端" 或 "Terminal"），粘贴这行命令然后回车：
+Open "Terminal" (search "Terminal" in Launchpad), paste this command and press Enter:
 
 ```bash
 brew install python
 ```
 
-如果提示 `brew: command not found`，说明还没装 Homebrew，先粘贴这行：
+If it says `brew: command not found`, it means Homebrew isn't installed. Paste this first:
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
-装完后再执行 `brew install python`。
+After installation finishes, run `brew install python` again.
 
 ### Windows
 
-1. 打开 [python.org/downloads](https://www.python.org/downloads/)，点黄色大按钮下载
-2. 运行安装包，**底部的 "Add Python to PATH" 一定要勾上**
-3. 点 "Install Now"
+1. Open [python.org/downloads](https://www.python.org/downloads/), click the big yellow button to download
+2. Run the installer, **strictly ensure "Add Python to PATH" at the bottom is checked**
+3. Click "Install Now"
 
-### 验证
+### Verify
 
-终端 / 命令提示符里输入：
+Enter in Terminal / Command Prompt:
 
 ```bash
 python3 --version
 ```
 
-看到 `Python 3.x.x` 就 OK。Windows 上也可以试 `python --version`。
+If you see `Python 3.x.x`, you're good to go. On Windows, you can also try `python --version`.
 
-> ⚠️ **版本提示**：推荐 **Python 3.11 或 3.12**。不要使用 3.14（与 pywebview 等依赖不兼容）。
+> ⚠️ **Version Warning**: Recommended **Python 3.11 or 3.12**. Avoid 3.14 (incompatible with pywebview and other dependencies).
 
 ---
 
-## 2. 配置 API Key
+## 2. Configure API Key
 
-### 下载项目
+### Download Project
 
-1. 打开 [GitHub 仓库页面](https://github.com/lsdefine/GenericAgent)
-2. 点绿色 **Code** 按钮 → **Download ZIP**
-3. 解压到你喜欢的位置
+1. Open the [GitHub Repository page](https://github.com/lsdefine/GenericAgent)
+2. Click the green **Code** button → **Download ZIP**
+3. Extract to your preferred location
 
-### 创建配置文件
+### Create Config File
 
-进入项目文件夹，把 `mykey_template.py` 复制一份，重命名为 `mykey.py`。
+Go into the project folder, duplicate `mykey_template.py`, and rename it to `mykey.py`.
 
-用任意文本编辑器打开 `mykey.py`，填入你的 API 信息。**选一种填就行**，不用的配置删掉或留着不管都行。
+Open `mykey.py` with any text editor and fill in your API information. **Just pick one setup**, you can delete the unused ones or leave them alone.
 
-### 配置示例
+### Config Examples
 
-**最常见的用法：**
+**Most common usage:**
 
 ```python
-# 变量名含 'oai' → 走 OpenAI 兼容格式 (/chat/completions)
+# Variable name contains 'oai' → Uses OpenAI compatible format (/chat/completions)
 oai_config = {
-    'apikey': 'sk-你的密钥',
-    'apibase': 'http://你的API地址:端口',
-    'model': '模型名称',
+    'apikey': 'sk-YourKey',
+    'apibase': 'http://YourAPIAddress:Port',
+    'model': 'ModelName',
 }
 ```
 
 ```python
-# 变量名含 'claude'（不含 'native'）→ 走 Claude 兼容格式 (/messages)
+# Variable name contains 'claude' (without 'native') → Uses Claude compatible format (/messages)
 claude_config = {
-    'apikey': 'sk-你的密钥',
-    'apibase': 'http://你的API地址:端口',
+    'apikey': 'sk-YourKey',
+    'apibase': 'http://YourAPIAddress:Port',
     'model': 'claude-sonnet-4-20250514',
 }
 ```
 
 ```python
-# MiniMax 使用 OpenAI 兼容格式，变量名含 'oai' 即可
-# 温度自动修正为 (0, 1]，支持 M2.7 / M2.5 全系列，204K 上下文
+# MiniMax uses OpenAI compatible format, just include 'oai' in the variable name
+# Temperature is auto-corrected to (0, 1], supports full M2.7 / M2.5 series, 204K context
 oai_minimax_config = {
     'apikey': 'eyJh...',
     'apibase': 'https://api.minimax.io/v1',
@@ -90,180 +90,180 @@ oai_minimax_config = {
 }
 ```
 
-**使用标准工具调用格式（适合较弱模型）：**
+**Using native Tool Call format (suitable for weaker models):**
 
 ```python
-# 变量名同时含 'native' 和 'claude' → Claude 标准工具调用格式
+# Variable name contains both 'native' and 'claude' → Claude standard tool call format
 native_claude_config = {
-    'apikey': 'sk-ant-你的密钥',
+    'apikey': 'sk-ant-YourKey',
     'apibase': 'https://api.anthropic.com',
     'model': 'claude-sonnet-4-20250514',
 }
 ```
 
-> 💡 还支持 `native_oai_config`（OpenAI 标准工具调用）、`sider_cookie`（Sider）等，详见 `mykey_template.py` 中的注释。
+> 💡 Also supports `native_oai_config` (OpenAI standard tool calling), `sider_cookie` (Sider), etc., check the comments in `mykey_template.py` for details.
 
-### 关键规则
+### Crucial Rules
 
-**变量命名决定接口格式**（不是模型名决定的）：
+**Variable naming dictates the interface format** (Not the model name):
 
-| 变量名包含 | 触发的 Session | 适用场景 |
+| Variable Contains | Session Triggered | Best For |
 |-----------|---------------|---------|
-| `oai` | OpenAI 兼容 | 大多数 API 服务、OpenAI 官方 |
-| `claude`（不含 `native`） | Claude 兼容 | Claude API 服务 |
-| `native` + `claude` | Claude 标准工具调用 | 较弱模型推荐，工具调用更规范 |
-| `native` + `oai` | OpenAI 标准工具调用 | 较弱模型推荐，工具调用更规范 |
+| `oai` | OpenAI Compatible | Most API services, OpenAI official |
+| `claude` (no `native`) | Claude Compatible | Claude API services |
+| `native` + `claude` | Claude Native Tool Call | Recommended for weaker models, stricter tool calling |
+| `native` + `oai` | OpenAI Native Tool Call | Recommended for weaker models, stricter tool calling |
 
-> 例：用 Claude 模型，但 API 服务提供的是 OpenAI 兼容接口 → 变量名用 `oai_xxx`。
-> 例：用 MiniMax 模型 → 变量名用 `oai_minimax_config`，MiniMax 走 OpenAI 兼容接口。
+> Ex: Using a Claude model, but your API provider uses an OpenAI-compatible endpoint → Name the variable `oai_xxx`.
+> Ex: Using MiniMax model → Name it `oai_minimax_config`, since MiniMax uses OpenAI APIs.
 
-**`apibase` 填写规则**（会自动拼接端点路径）：
+**`apibase` filling rules** (endpoints append auto-magically):
 
-| 你填的内容 | 系统行为 |
+| What you write | System behavior |
 |-----------|---------|
-| `http://host:2001` | 自动补 `/v1/chat/completions` |
-| `http://host:2001/v1` | 自动补 `/chat/completions` |
-| `http://host:2001/v1/chat/completions` | 直接使用，不拼接 |
+| `http://host:2001` | Auto-appends `/v1/chat/completions` |
+| `http://host:2001/v1` | Auto-appends `/chat/completions` |
+| `http://host:2001/v1/chat/completions` | Used exactly as-is, no appending |
 
 ---
 
-## 3. 初次启动
+## 3. First Launch
 
-终端里进入项目文件夹，运行：
+Open terminal in the project folder and run:
 
 ```bash
-cd 你的解压路径
+cd your/extraction/path
 python3 agentmain.py
 ```
 
-这就是**命令行模式**，已经可以用了。你会看到一个输入提示符，直接打字发送任务即可。
+This is the **command-line mode**, ready to use. You'll see a prompt, just type and send tasks.
 
-试试你的第一个任务：
+Try your first task:
 
 ```
-帮我在桌面创建一个 hello.txt，内容是 Hello World
+Create a hello.txt on my desktop containing the text Hello World
 ```
 
-> 💡 Windows 上如果 `python3` 不识别，换成 `python agentmain.py`。
+> 💡 On Windows, if `python3` is not recognized, use `python agentmain.py`.
 
 ---
 
-## 4. 让 Agent 自己装依赖
+## 4. Let the Agent Install Dependencies
 
-Agent 启动后，只需要一句话，它就会自己搞定所有依赖：
+Once the Agent is up, a single sentence is all it takes to handle dependencies:
 
 ```
-请查看你的代码，安装所有用得上的 python 依赖
+Please review your code and install all python dependencies you might need
 ```
 
-Agent 会自己读代码、找出需要的包、全部装好。
+The Agent will read its own code, identify the required packages, and install them for you.
 
-> ⚠️ 如果遇到网络问题导致 Agent 无法调用 API，可能需要先手动装一个包：
+> ⚠️ If network issues block the Agent from calling its API, you may need to install one package manually first:
 > ```bash
 > pip install requests
 > ```
 
-### 升级到图形界面
+### Upgrading to the GUI 
 
-依赖装完后，就可以用 GUI 模式了：
+Once dependencies are installed, you can use the graphical mode:
 
 ```bash
 python3 launch.pyw
 ```
 
-启动后会出现一个桌面悬浮窗，直接在里面输入任务指令。
+A floating overlay widget will appear on your desktop. Type your tasks directly there.
 
-### 可选：让 Agent 帮你做的事
-
-```
-请帮我建立 git 连接，方便以后更新代码
-```
-
-Agent 会自动配好。如果你电脑上没有 Git，它也会帮你下载 portable 版。
+### Optional: Stuff you can ask the Agent to do
 
 ```
-请帮我在桌面创建一个 launch.pyw 的快捷方式
+Please set up git connections for me so I can easily update your code later
 ```
 
-这样以后双击桌面图标就能启动，不用再开终端了。
+The Agent will set it up automatically. If you don't have Git, it'll download a portable version.
+
+```
+Please create a desktop shortcut for launch.pyw
+```
+
+Now you can just double-click the icon to launch, no more terminals needed.
 
 ---
 
-## 5. 能力解锁
+## 5. Unlocking Capabilities
 
-环境跑起来之后，你可以逐步解锁更多能力。每一项都只需要**对 Agent 说一句话**：
+With the environment running, you can progressively unlock more powers. Each point just needs **one sentence told to the Agent**:
 
-### 基础能力
+### Basic Powers
 
-| 能力 | 对 Agent 说 | 说明 |
+| Capability | What to tell the Agent | Description |
 |------|-----------|------|
-| **PowerShell 脚本执行** | `帮我解锁当前用户的 PowerShell ps1 执行权限` | Windows 默认禁止运行 .ps1 脚本 |
-| **全局文件搜索** | `安装并配置 Everything 命令行工具进 PATH` | 毫秒级全盘文件搜索 |
+| **PowerShell Scripting** | `Unlock my current user's PowerShell ps1 execution permissions` | Windows blocks .ps1 execution by default |
+| **Global File Search** | `Install and configure Everything CLI into my PATH` | Millisecond-level full drive searches |
 
-### 浏览器自动化
+### Browser Automation
 
-| 能力 | 对 Agent 说 | 说明 |
+| Capability | What to tell the Agent | Description |
 |------|-----------|------|
-| **Web 工具解锁** | `执行 web setup sop，解锁 web 工具` | 注入浏览器插件，使 Agent 能直接操控网页 |
+| **Web Tools Unlock** | `Execute web setup sop, unlock web tools` | Injects browser extension, allowing browser manipulation |
 
-解锁后，Agent 可以在**保留你登录态**的真实浏览器中操作：
+Once unlocked, the Agent acts inside your **real browser, preserving your login states**:
 
 ```
-打开淘宝，搜索 iPhone 16，按价格排序
-去 B 站，查看我最近看过的历史视频
+Open Amazon, search for iPhone 16, sort by price
+Go to YouTube, check my recently watched history
 ```
 
-### 进阶能力
+### Advanced Powers
 
-| 能力 | 对 Agent 说 | 说明 |
+| Capability | What to tell the Agent | Description |
 |------|-----------|------|
-| **OCR** | `用rapidocr配置你的ocr能力并存入记忆` | 让 Agent 能"看到"屏幕文字 |
-| **屏幕视觉** | `仿造你的llmcore，写个调用vision的能力并存入记忆` | 让 Agent 能"看到"屏幕内容 |
-| **移动端控制** | `配置 ADB 环境，准备连接安卓设备` | 通过 USB/WiFi 控制 Android 手机 |
+| **OCR** | `Use rapidocr to configure your OCR capability and save it to your memory` | Let the Agent "see" text on screen |
+| **Screen Vision** | `Look at your llmcore, write a capability to invoke vision and save it to your memory` | Let the Agent "see" on-screen content |
+| **Mobile Control** | `Configure ADB environment, prepare to connect Android device` | Control Android phones via USB/WiFi |
 
-### 聊天平台接入（可选）
+### Chat Platform Integrations (Optional)
 
-接入后可以随时随地通过手机给电脑上的 Agent 发指令。
+Once integrated, you can message the Agent on your PC from your phone anytime, anywhere.
 
-对 Agent 说：`看你的代码，帮我配置 XX 平台的机器人接入`
+Tell the Agent: `Check your code and help me configure the Bot integration for platform XX`
 
-支持的平台：**微信个人Bot** / QQ / 飞书 / 企业微信 / 钉钉 / Telegram
+Supported platforms: **Personal WeChat Bot** / QQ / Feishu / WeCom / DingTalk / Telegram
 
-> Agent 会自动读取代码、引导你完成配置。
+> The Agent will automatically read its code and guide you through the setup.
 
-### 高级模式
+### Advanced Modes
 
-以下模式全部**自文档化**——不用查手册，直接问 Agent 即可：
+The following modes are fully **Self-Documenting**—no need to look up manuals, just ask the Agent directly:
 
-| 模式 | 对 Agent 说 |
+| Mode | What to tell the Agent |
 |------|------------|
-| **Reflect（反射）** | `查看你的代码，告诉我你的 reflect 模式怎么启用` |
-| **计划任务** | `查看你的代码，告诉我你的计划任务模式怎么启用` |
-| **Plan（规划）** | `查看你的代码，告诉我你的 plan 模式怎么启用` |
-| **SubAgent（子代理）** | `查看你的代码，告诉我你的 subagent 模式怎么启用` |
-| **自主探索** | `查看你的代码，告诉我你的自主探索模式怎么启用` |
+| **Reflect** | `Read your code, tell me how to enable your reflect mode` |
+| **Scheduled Tasks** | `Read your code, tell me how to enable your scheduled task mode` |
+| **Plan** | `Read your code, tell me how to enable your plan mode` |
+| **SubAgent** | `Read your code, tell me how to enable your subagent mode` |
+| **Autonomous Probing** | `Read your code, tell me how to enable your autonomous exploration mode` |
 
-> 💡 这就是 GenericAgent 的核心设计理念：**代码即文档**。Agent 能读懂自己的源码，所以任何功能你都可以直接问它。
+> 💡 This is GenericAgent's core design philosophy: **Code IS the documentation**. The Agent can understand its own source code, so you can ask it directly for any functionality.
 
 ---
 
-## 💡 使用越久越强
+## 💡 Gets Stronger the More You Use It
 
-GenericAgent 不预设技能，而是**靠使用进化**。每完成一个新任务，它会自动将执行路径固化为 Skill，下次遇到类似任务直接调用。
+GenericAgent does not have pre-programmed skills, instead **it evolves through usage**. Every time a new task is completed, it automatically solidifies the execution path into a Skill, to be invoked directly on similar tasks.
 
-你不需要管理这些 Skill，Agent 会自动处理。使用时间越长，积累的技能越多，最终形成一棵完全属于你的专属技能树。
+You don't need to manage these Skills, the Agent does it. The longer you use it, the more skills it accumulates, ultimately growing a tailored, exclusive skill tree.
 
-> 💡 如果你觉得某些重要信息 Agent 没有记住，可以直接告诉它：`把这个记到你的记忆里`，它会主动记忆。
+> 💡 If you feel the Agent forgot something important, tell it directly: `Save this into your memory`, and it'll memorize it.
 
-**其他 Claw 的 Skill 也可以直接复用：**
+**You can also directly reuse Skills from other Claws:**
 
-- 让 Agent 搜索：`帮我找个做 XXX 的 skill` → 完成后 → `加入你的记忆中`
-- 直接指定来源：`访问 XXX 文件夹/URL，按照这个 skill 做 XXX`
+- To let the Agent search: `Help me find a skill that does XXX` → After completion → `Add it to your memory`
+- Directly specify a source: `Access directory/URL XXX, follow this skill to do XXX`
 
-**保持更新：**
+**Staying Updated:**
 
-对 Agent 说：`git 更新你的代码，然后看看 commit 有什么新功能`
+Tell the Agent: `git update your code, then look at the commits to see what's new`
 
-> Agent 会自动 pull 最新代码并解读 commit log，告诉你新增了什么能力。
+> The Agent will automatically git pull and interpret the commit logs to summarize its new abilities.
 
-> 更多细节请参阅 [README.md](README.md) 或 [详细版图文教程](https://my.feishu.cn/wiki/CGrDw0T76iNFuskmwxdcWrpinPb)。
+> Please refer to [README.md](README.md) for more details.

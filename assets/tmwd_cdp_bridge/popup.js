@@ -13,11 +13,11 @@ async function fetchCookies() {
     const resp = await chrome.runtime.sendMessage({ cmd: 'cookies', url: tab.url });
     if (!resp?.ok) { out.textContent = 'Error: ' + (resp?.error || 'unknown'); return; }
     if (!resp.data.length) { out.textContent = '(no cookies)'; return; }
-    // 展示带标记
+    // Display with marks
     out.textContent = resp.data.map(c =>
       `${c.name}=${c.value}` + (c.httpOnly ? ' [H]' : '') + (c.secure ? ' [S]' : '') + (c.partitionKey ? ' [P]' : '')
     ).join('\n');
-    // 自动复制 name=value; 格式到剪贴板
+    // Auto copy name=value; format to clipboard
     const str = resp.data.map(c => `${c.name}=${c.value}`).join('; ');
     await navigator.clipboard.writeText(str);
   } catch (e) { out.textContent = 'Error: ' + e.message; }

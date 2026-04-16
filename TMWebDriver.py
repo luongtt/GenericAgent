@@ -198,10 +198,10 @@ class TMWebDriver:
                 alive_sessions = [s for s in self.sessions.values() if s.is_active()]
                 if alive_sessions:
                     session = alive_sessions[0]  
-                    print(f"会话 {session_id} 未连接，自动切换到最新活动会话: {session.id}")
+                    print(f"Session {session_id} not connected, automatically switching to latest active session: {session.id}")
                     session_id = self.default_session_id = session.id
                 if not session or not session.is_active(): 
-                    raise ValueError(f"会话ID {session_id} 未连接")  
+                    raise ValueError(f"Session ID {session_id} not connected")  
 
         tp = session.type
         assert tp in ['ws', 'http', 'ext_ws'], f"Unsupported session type: {tp}"
@@ -270,10 +270,10 @@ class TMWebDriver:
             matched = self._remote_cmd({"cmd": "find_session", "url_pattern": url_pattern}).get('r', [])
         else:
             matched = self.find_session(url_pattern)
-        if not matched: return print(f"警告: 未找到URL包含 '{url_pattern}' 的会话")  
-        if len(matched) > 1: print(f"警告: 找到多个URL包含 '{url_pattern}' 的会话，选择第一个")  
+        if not matched: return print(f"Warning: No session found with URL containing '{url_pattern}'")  
+        if len(matched) > 1: print(f"Warning: Multiple sessions found with URL containing '{url_pattern}', selecting the first one")  
         self.default_session_id, info = matched[0]
-        print(f"成功设置默认会话: {self.default_session_id}: {info['url']}")  
+        print(f"Successfully set default session: {self.default_session_id}: {info['url']}")  
         return self.default_session_id  
     
     def jump(self, url, timeout=10): self.execute_js(f"window.location.href='{url}'", timeout=timeout)

@@ -119,14 +119,14 @@ class GeneraticAgent:
             script_dir = os.path.dirname(os.path.abspath(__file__))
             handler = GenericAgentHandler(self, self.history, os.path.join(script_dir, 'temp'))
             if self.handler and 'key_info' in self.handler.working: 
-                ki = re.sub(r'\n\[SYSTEM\] 此为.*?工作记忆[。\n]*', '', self.handler.working['key_info'])  # 去旧
+                ki = re.sub(r'\n\[SYSTEM\] This is.*?working memory[.\n]*', '', self.handler.working['key_info'])  # Remove old
                 handler.working['key_info'] = ki
                 handler.working['passed_sessions'] = ps = self.handler.working.get('passed_sessions', 0) + 1
-                if ps > 0: handler.working['key_info'] += f'\n[SYSTEM] 此为 {ps} 个对话前设置的key_info，若已在新任务，先更新或清除工作记忆。\n'
+                if ps > 0: handler.working['key_info'] += f'\n[SYSTEM] This is key_info set {ps} dialogs ago, if on a new task, update or clear working memory first.\n'
             self.handler = handler
             user_input = raw_query
-            if source == 'feishu' and len(self.history) > 1:   # 如果有历史记录且来自飞书，注入到首轮 user_input 中（支持/restore恢复上下文）
-                user_input = handler._get_anchor_prompt() + f"\n\n### 用户当前消息\n{raw_query}"
+            if source == 'feishu' and len(self.history) > 1:   # If has history and from feishu, inject into first user_input (supports /restore)
+                user_input = handler._get_anchor_prompt() + f"\n\n### Current User Message\n{raw_query}"
             initial_user_content = None
             # although new handler, the **full** history is in llmclient, so it is full history!
             gen = agent_runner_loop(self.llmclient, sys_prompt, user_input, 
@@ -162,8 +162,8 @@ if __name__ == '__main__':
     import argparse
     from datetime import datetime
     parser = argparse.ArgumentParser()
-    parser.add_argument('--task', metavar='IODIR', help='一次性任务模式(文件IO)')
-    parser.add_argument('--reflect', metavar='SCRIPT', help='反射模式：加载监控脚本，check()触发时发任务')
+    parser.add_argument('--task', metavar='IODIR', help='One-off task mode (file IO)')
+    parser.add_argument('--reflect', metavar='SCRIPT', help='Reflection mode: load monitor script, trigger task when check() fires')
     parser.add_argument('--input', help='prompt')
     parser.add_argument('--llm_no', type=int, default=0)
     parser.add_argument('--verbose', action='store_true')
@@ -196,11 +196,11 @@ if __name__ == '__main__':
         while True:
             dq = agent.put_task(raw, source='task')
             while 'done' not in (item := dq.get(timeout=120)): 
-                if 'next' in item and random.random() < 0.95:  # 概率写一次中间结果
+                if 'next' in item and random.random() < 0.95:  # Probably write intermediate results once
                     with open(f'{d}/output{nround}.txt', 'w', encoding='utf-8') as f: f.write(item.get('next', ''))
             with open(f'{d}/output{nround}.txt', 'w', encoding='utf-8') as f: f.write(item['done'] + '\n\n[ROUND END]\n')
-            consume_file(d, '_stop')  # 已经成功停下来了，避免打断下次reply
-            for _ in range(300):  # 等reply.txt，10分钟超时
+            consume_file(d, '_stop')  # Already stopped successfully, avoid interrupting next reply
+            for _ in range(300):  # Wait for reply.txt, 10 min timeout
                 time.sleep(2)
                 if (raw := consume_file(d, 'reply.txt')): break
             else: break

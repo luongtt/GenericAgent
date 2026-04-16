@@ -1,5 +1,5 @@
 try: from bs4 import BeautifulSoup
-except ImportError: print("[Error] BeautifulSoup4 未安装，请叫Agent安装BeautifulSoup4，再使用web相关工具。")
+except ImportError: print("[Error] BeautifulSoup4 not installed, please ask Agent to install BeautifulSoup4 before using web tools.")
 
 js_optHTML = r'''function optHTML(text_only=false) {
 function createEnhancedDOMCopy() {  
@@ -19,7 +19,7 @@ function createEnhancedDOMCopy() {
     if ((sourceNode.tagName === 'INPUT' || sourceNode.tagName === 'TEXTAREA') && sourceNode.value) clone.setAttribute('value', sourceNode.value);
     if (sourceNode.tagName === 'INPUT' && (sourceNode.type === 'radio' || sourceNode.type === 'checkbox') && sourceNode.checked) clone.setAttribute('checked', '');
     else if (sourceNode.tagName === 'SELECT' && sourceNode.value) clone.setAttribute('data-selected', sourceNode.value);  
-    try { if (sourceNode.matches && sourceNode.matches(':-webkit-autofill')) { clone.setAttribute('data-autofilled', 'true'); if (!sourceNode.value) clone.setAttribute('value', '⚠️受保护-读tmwebdriver_sop的autofill章节提取'); } } catch(e) {}
+    try { if (sourceNode.matches && sourceNode.matches(':-webkit-autofill')) { clone.setAttribute('data-autofilled', 'true'); if (!sourceNode.value) clone.setAttribute('value', '⚠️Protected - Read autofill section of tmwebdriver_sop to extract'); } } catch(e) {}
 
     const isDropdown = sourceNode.classList?.contains('dropdown-menu') ||   
              /dropdown|menu/i.test(sourceNode.className) || sourceNode.getAttribute('role') === 'menu'; 
@@ -138,7 +138,7 @@ if (text_only) {
 const viewportArea = window.innerWidth * window.innerHeight; 
 
 function analyzeNode(node, pPathType='main') {  
-    // 处理非元素节点和叶节点  
+    // Process non-element nodes and leaf nodes  
     if (node.nodeType !== 1 || !node.children.length) {  
       node.nodeType === 1 && (node.dataset.mark = 'K:leaf');  
       return;  
@@ -156,7 +156,7 @@ function analyzeNode(node, pPathType='main') {
     }  
     if (children.length > 10) return;
     
-    // 获取子元素信息并排序  
+    // Get child element information and sort
     const childrenInfo = children.map(child => {  
       const info = getNodeInfo(child) || { rect: {}, style: {} };  
       return { node: child, rect: info.rect, style: info.style, 
@@ -164,24 +164,24 @@ function analyzeNode(node, pPathType='main') {
     });
     childrenInfo.sort((a, b) => b.area - a.area);  
     
-    // 检测是划分还是覆盖  
+    // Detect whether it is partitioning or overlaying
     const isOverlay = hasOverlap(childrenInfo);  
     node.dataset.mark = isOverlay ? 'K:overlayParent' : 'K:partitionParent';  
     
     if (isOverlay) handleOverlayContainer(childrenInfo, pathType);  
     else handlePartitionContainer(childrenInfo, pathType);  
 
-    console.log(`${isOverlay ? '覆盖' : '划分'}容器:`, node, `子元素数量: ${children.length}`);  
-    console.log('子元素及标记:', children.map(child => ({   
+    console.log(`${isOverlay ? 'Overlay' : 'Partition'} container:`, node, `Child elements count: ${children.length}`);  
+    console.log('Child elements and marks:', children.map(child => ({   
       element: child,   
-      mark: child.dataset.mark || '无',  
+      mark: child.dataset.mark || 'None',  
       info: getNodeInfo ? getNodeInfo(child) : undefined  
     })));  
     for (const child of children)  
       if (!child.dataset.mark || child.dataset.mark[0] !== 'R') analyzeNode(child, pathType);  
   }  
   
-  // 处理划分容器  
+  // Process partition container
   function handlePartitionContainer(childrenInfo, pathType) {  
     childrenInfo.sort((a, b) => b.area - a.area);
     const totalArea = childrenInfo.reduce((sum, item) => sum + item.area, 0);  
@@ -199,7 +199,7 @@ function analyzeNode(node, pPathType='main') {
         if (className.includes('breadcrumbs')) isSecondary = true;
         if (className.includes('header') && className.includes('table')) isSecondary = true;
         if (child.node.innerHTML.trim().replace(/\s+/g, '').length < 500) isSecondary = true;
-        if (child.node.textContent.trim().length > 200) isSecondary = true;  // P3: 有实质文本内容则保留
+        if (child.node.textContent.trim().length > 200) isSecondary = true;  // P3: keep if there is substantial text content
         if (child.style.visibility === 'hidden') isSecondary = false;
         if (isSecondary) child.node.dataset.mark = 'K:secondary';  
         else child.node.dataset.mark = 'K:nonEssential';  
@@ -224,11 +224,11 @@ function analyzeNode(node, pPathType='main') {
   }   
   
   function handleOverlayContainer(childrenInfo, pathType) {  
-    // elementFromPoint ground truth: 让浏览器告诉我们谁在视觉最上层
+    // elementFromPoint ground truth: let browser tell us who is visually on top
     const _efp = document.elementFromPoint(window.innerWidth/2, window.innerHeight/2);
     if (_efp) { let _el = _efp; while (_el) { const _h = childrenInfo.find(c => c.node.id && c.node.id === _el.id); if (_h) { _h.zIndex = 9999; break; } _el = _el.parentElement; } }
     const sorted = [...childrenInfo].sort((a, b) => b.zIndex - a.zIndex);  
-    console.log('排序后的子元素:', sorted);
+    console.log('Sorted child elements:', sorted);
     if (sorted.length === 0) return;  
     
     const top = sorted[0];  
@@ -328,7 +328,7 @@ js_findMainList = r'''function findMainList(startElement = null) {
         const MIN_CHILDREN = 8;
         const MAX_CONTAINERS = 20;
 
-        // 全局扫描：收集候选容器，按 l1 + l2*0.1 排序（l2=孙子元素数，捕获表格等多层结构）
+        // Global scan: Collect candidate containers, sorted by l1 + l2*0.1 (l2=number of grandchild elements, capturing multi-level structures like tables)
         const candidates = [];
         const allEls = root.querySelectorAll('*');
         for (const node of allEls) {
@@ -343,7 +343,7 @@ js_findMainList = r'''function findMainList(startElement = null) {
         candidates.sort((a, b) => b.score - a.score);
         const toProcess = candidates.slice(0, MAX_CONTAINERS).map(c => c.node);
 
-        // 对每个容器找候选组并评分
+        // Find candidate groups and score for each container
         let allCandidates = [];
         for (const container of toProcess) {
             const topGroups = findTopGroups(container, 3);
@@ -358,10 +358,10 @@ js_findMainList = r'''function findMainList(startElement = null) {
             }
         }
 
-        // 按分数降序排列
+        // Sort by score in descending order
         allCandidates.sort((a, b) => b.score - a.score);
 
-        // 去重：移除与更高分候选重叠超50%的结果
+        // Deduplicate: Remove results that overlap more than 50% with higher scoring candidates
         const kept = [];
         for (const cand of allCandidates) {
             let dominated = false;
@@ -408,18 +408,18 @@ js_findMainList = r'''function findMainList(startElement = null) {
         const minGroupSize = Math.max(3, Math.floor(totalChildren * 0.2));
         const groups = [];
 
-        // 统计标签和类名
+        // Count tags and class names
         const tagFreq = {}, classFreq = {}, tagMap = {}, classMap = {};
 
         children.forEach(child => {
-            // 统计标签
+            // Count tags
             const tag = child.tagName.toLowerCase();
             if (tag === "td") return;
             tagFreq[tag] = (tagFreq[tag] || 0) + 1;
             if (!tagMap[tag]) tagMap[tag] = [];
             tagMap[tag].push(child);
 
-            // 统计类名
+            // Count class names
             if (child.className) {
                 child.className.trim().split(/\s+/).forEach(cls => {
                     if (cls) {
@@ -431,18 +431,18 @@ js_findMainList = r'''function findMainList(startElement = null) {
             }
         });
 
-        // 评分函数
+        // Scoring function
         const scoreGroup = (selector, elements) => {
             const coverage = elements.length / totalChildren;
             let specificity = selector.startsWith('.')
-            ? (0.6 + (selector.match(/\./g).length - 1) * 0.1) // 类选择器
+            ? (0.6 + (selector.match(/\./g).length - 1) * 0.1) // Class selector
             : (selector.includes('.')
-               ? (0.7 + (selector.match(/\./g).length) * 0.1) // 标签+类
-               : 0.3); // 纯标签
+               ? (0.7 + (selector.match(/\./g).length) * 0.1) // Tag + Class
+               : 0.3); // Pure Tag
             return (coverage * 0.5) + (specificity * 0.5);
         };
 
-        // 添加标签组
+        // Add tag groups
         Object.keys(tagFreq).forEach(tag => {
             if (tag !== "div" && tagFreq[tag] >= minGroupSize) {
                 groups.push({
@@ -453,7 +453,7 @@ js_findMainList = r'''function findMainList(startElement = null) {
             }
         });
 
-        // 添加类组
+        // Add class groups
         Object.keys(classFreq).forEach(cls => {
             if (classFreq[cls] >= minGroupSize) {
                 const selector = '.' + CSS.escape(cls);
@@ -464,11 +464,11 @@ js_findMainList = r'''function findMainList(startElement = null) {
                 });
             }
         });
-        // 添加标签+类组合
+        // Add tag + class combinations
         const topTags = Object.keys(tagFreq).filter(t => tagFreq[t] >= minGroupSize).slice(0, 3);
         const topClasses = Object.keys(classFreq).filter(c => classFreq[c] >= minGroupSize).sort((a, b) => classFreq[b] - classFreq[a]).slice(0, 3);
 
-        // 标签+类
+        // Tag + Class
         topTags.forEach(tag => {
             topClasses.forEach(cls => {
                 const elements = children.filter(el =>
@@ -483,7 +483,7 @@ js_findMainList = r'''function findMainList(startElement = null) {
             });
         });
 
-        // 多类组合
+        // Multi-class combination
         for (let i = 0; i < topClasses.length; i++) {
             for (let j = i + 1; j < topClasses.length; j++) {
                 const elements = children.filter(el =>
@@ -495,7 +495,7 @@ js_findMainList = r'''function findMainList(startElement = null) {
                 }
             }
         }
-        // 返回得分最高的N个组
+        // Return the top N scoring groups
         return groups.sort((a, b) => b.score - a.score).slice(0, limit);
     }
 
@@ -503,7 +503,7 @@ js_findMainList = r'''function findMainList(startElement = null) {
         try {
             return Array.from(container.querySelectorAll(selector));
         } catch (e) {
-            // 处理无效选择器
+            // Handle invalid selector
             console.error('Invalid selector:', selector, e);
             return [];
         }
@@ -511,12 +511,12 @@ js_findMainList = r'''function findMainList(startElement = null) {
 
     function scoreContainer(container, items) {
         if (!container || items.length < 3) return 0;
-        // 1. 计算基础面积数据
+        // 1. Calculate base area data
         const containerRect = container.getBoundingClientRect();
         const containerArea = containerRect.width * containerRect.height;
-        if (containerArea < 10000) return 0; // 容器太小
+        if (containerArea < 10000) return 0; // Container too small
 
-        // 收集列表项面积数据
+        // Collect list item area data
         const itemAreas = [];
         let totalItemArea = 0;
         let visibleItems = 0;
@@ -530,23 +530,23 @@ js_findMainList = r'''function findMainList(startElement = null) {
                 visibleItems++;
             }
         });
-        // 如果可见项太少，返回低分
+        // If visible items are too few, return low score
         if (visibleItems < 3) return 0;
-        // 防止异常值：确保面积不超过容器
+        // Prevent anomalous values: ensure area does not exceed container
         totalItemArea = Math.min(totalItemArea, containerArea * 0.98);
         const areaRatio = totalItemArea / containerArea;
-        // 3. 计算各项评分 - 使用线性插值而非阶梯
-        // 3.2 面积比评分 - 最多40分，连续曲线
-        // 使用sigmoid函数让评分更平滑
+        // 3. Calculate scores - use linear interpolation instead of steps
+        // 3.2 Area ratio score - max 40 points, continuous curve
+        // Use sigmoid function to make the score smoother
         const areaScore = 40 / (1 + Math.exp(-12 * (areaRatio - 0.4)));
 
-        // 3.3 均匀性评分 - 最多20分，连续曲线
+        // 3.3 Uniformity score - max 20 points, continuous curve
         let uniformityScore = 0;
         if (itemAreas.length >= 3) {
             const mean = itemAreas.reduce((sum, area) => sum + area, 0) / itemAreas.length;
             const variance = itemAreas.reduce((sum, area) => sum + Math.pow(area - mean, 2), 0) / itemAreas.length;
             const cv = mean > 0 ? Math.sqrt(variance) / mean : 1;
-            // 指数衰减函数，cv越小分数越高
+            // Exponential decay function, smaller cv gives higher score
             uniformityScore = 20 * Math.exp(-2.5 * cv);
         }
 
@@ -554,17 +554,17 @@ js_findMainList = r'''function findMainList(startElement = null) {
         const rawCountScore = Math.min(40, baseScore);
         const countScore = rawCountScore * Math.max(0.1, uniformityScore / 20);
 
-        // 3.4 容器尺寸评分 - 最多15分，连续曲线
+        // 3.4 Container size score - max 15 points, continuous curve
         const viewportArea = window.innerWidth * window.innerHeight;
         const containerViewportRatio = containerArea / viewportArea;
         const sizeScore = 2 * (1 - 1/(1 + Math.exp(-10 * (containerViewportRatio - 0.25))));  
 
         let layoutScore = 0;
         if (items.length >= 3) {
-            // 坐标分组并计算行列数
+            // Group coordinates and calculate rows and columns
             const uniqueRows = new Set(items.map(item => Math.round(item.getBoundingClientRect().top / 5) * 5)).size;
             const uniqueCols = new Set(items.map(item => Math.round(item.getBoundingClientRect().left / 5) * 5)).size;
-            // 如果是单行或单列，直接给满分；否则评估网格质量
+            // If single row or column, give full score; otherwise evaluate grid quality
             if (uniqueRows === 1 || uniqueCols === 1) { layoutScore = 20;
             } else {
                 const coverage = Math.min(1, items.length / (uniqueRows * uniqueCols));
@@ -573,7 +573,7 @@ js_findMainList = r'''function findMainList(startElement = null) {
             }
         }
 
-        // 总分 - 仍然保持100分左右的总分
+        // Total score - maintain the total score around 100
         const totalScore = countScore + areaScore + uniformityScore + layoutScore + sizeScore;
 
         if (totalScore > 100)
@@ -660,9 +660,9 @@ import time, re, os
 def get_main_block(driver, extra_js="", text_only=False): 
     page = driver.execute_js(f"{extra_js}\n{js_optHTML}\nreturn optHTML({str(text_only).lower()});").get('data', '')
     if text_only:
-        page = re.sub(r' {2,}', ' ', page)           # 连续空格→单空格
-        page = re.sub(r'^ +', '', page, flags=re.M)   # 去行首空格
-        page = re.sub(r'(\n\s*){3,}', '\n\n', page)   # 3+空行→1空行
+        page = re.sub(r' {2,}', ' ', page)           # Continuous spaces -> single space
+        page = re.sub(r'^ +', '', page, flags=re.M)   # Remove leading spaces
+        page = re.sub(r'(\n\s*){3,}', '\n\n', page)   # 3+ empty lines -> 1 empty line
         return page.strip()
     return page
 
@@ -689,7 +689,7 @@ def find_changed_elements(before_html, after_html):
         before_els, after_els = before_soup.find_all(True), after_soup.find_all(True)
         for i in range(min(len(before_els), len(after_els))):
             if get_sig(before_els[i]) != get_sig(after_els[i]): changed.append(after_els[i])
-    # 变化边界: parent不在changed中的元素
+    # Change boundary: elements whose parent is not in changed
     cids = set(id(el) for el in changed)
     boundaries = [el for el in changed if el.parent is None or id(el.parent) not in cids]
     top = max(boundaries, key=lambda el: len(str(el))) if boundaries else None
@@ -739,16 +739,16 @@ def get_html(driver, cutlist=False, maxchars=35000, instruction="", extra_js="",
     return ss
 
 def smart_truncate(soup, budget, _depth=0):
-    """原地截断 soup 使其接近 budget 字符。
-    策略：穿透单子元素找分叉点；top3 能扛住 over 则按比例分担，否则从尾部删子元素。"""
-    CUT_THRESHOLD = 8000  # 小于此值直接去尾，大于则继续递归找分叉点
+    """In-place truncate soup to approximate the budget characters.
+    Strategy: penetrate single child elements to find the branching point; if the top 3 can absorb the overflow, share it proportionally, otherwise delete child elements from the tail."""
+    CUT_THRESHOLD = 8000  # Smaller than this, cut tail; larger, recurse to find branch point
     indent = '  ' * _depth
     def cut(ele, keep):
         from bs4 import NavigableString
         s = str(ele)
         over = len(s) - keep
         if over <= 0: return
-        # 保护 FAKE ELEMENT 提示标签
+        # Protect FAKE ELEMENT prompt tag
         protected = [c.extract() for c in ele.find_all(lambda tag: tag.string and '[FAKE ELEMENT]' in tag.string)]
         s = str(ele)
         over = len(s) - keep
@@ -772,19 +772,19 @@ def smart_truncate(soup, budget, _depth=0):
     remaining_budget = max(budget - selflen, 0)
     tag = getattr(soup, 'name', '?')
     print(f'{indent}[smart_truncate] <{tag}> total={total} budget={budget} selflen={selflen} kids={len(kids)}')
-    # === 1 kid: 穿透 ===
+    # === 1 kid: penetrate ===
     if len(kids) == 1:
         print(f'{indent}  -> single child, recurse into <{kids[0][0].name}>')
         smart_truncate(kids[0][0], remaining_budget, _depth)
         return soup
     over = sum(l for _, l in kids) - remaining_budget
     if over <= 0: return soup
-    # 看 top 3 能否承担 over
+    # Check if top 3 can absorb over
     ranked = sorted(range(len(kids)), key=lambda i: kids[i][1], reverse=True)
     tops = list(ranked[:min(3, len(ranked))])
     top_total = sum(kids[i][1] for i in tops)
     if top_total < over:
-        # === top 3 扛不住，从尾部删子元素 ===
+        # === top 3 cannot absorb, delete child elements from tail ===
         removed = 0
         removed_count = 0
         while kids and removed < over:
@@ -792,14 +792,14 @@ def smart_truncate(soup, budget, _depth=0):
             removed += l; removed_count += 1
         print(f'{indent}  -> tail-cut: removed {removed_count} children ({removed//1000}k chars) from end')
         return soup
-    # === top 2-3 按比例分担 ===
-    # 过滤掉太小的 kid（不到最大的 10%），让大的全扛
+    # === top 2-3 share proportionally ===
+    # Filter out kids that are too small (less than 10% of max), let big ones absorb all
     max_size = kids[ranked[0]][1]
     filtered = [i for i in tops if kids[i][1] >= max_size * 0.1]
     filtered_total = sum(kids[i][1] for i in filtered)
     if filtered_total >= over:
         tops, top_total = filtered, filtered_total
-    # 先打印所有分配计划
+    # First print all allocation plans
     actions = []
     for i in tops:
         c, l = kids[i]
@@ -807,7 +807,7 @@ def smart_truncate(soup, budget, _depth=0):
         new_keep = l - share
         print(f'{indent}  -> <{c.name}> {l} -> {new_keep} (share={share})')
         actions.append((c, l, new_keep))
-    # 再统一执行
+    # Then execute in batch
     for c, l, new_keep in actions:
         if new_keep <= 0: c.decompose()
         elif new_keep > CUT_THRESHOLD: smart_truncate(c, new_keep, _depth + 1)
@@ -845,7 +845,7 @@ def execute_js_rich(script, driver, no_monitor=False):
         if new_sids:
             newTabs = [{'id': k, 'url': v} for k, v in new_sids.items()]
             rr['newTabs'] = newTabs
-            rr['suggestion'] = "页面已刷新，以上新标签页在执行期间连接。"
+            rr['suggestion'] = "Page refreshed, above new tabs connected during execution."
     if error_msg: rr['error'] = error_msg
     if no_monitor: return rr
     if not reloaded:
@@ -858,13 +858,13 @@ def execute_js_rich(script, driver, no_monitor=False):
             diff_data = find_changed_elements(last_html, current_html)
             change_count = diff_data.get('changed', 0)
             top_change = diff_data.get('top_change', '')
-            diff_summary = f"DOM变化量: {change_count}"
-            if top_change: diff_summary += f"\n最显著变化:\n{top_change}"
+            diff_summary = f"DOM change volume: {change_count}"
+            if top_change: diff_summary += f"\nMost significant change:\n{top_change}"
             transients = rr.get('transients', [])
             if change_count == 0 and not transients and len(newTabs) == 0:
-                diff_summary += " (页面无变化)"
-                rr['suggestion'] = "页面无明显变化"
+                diff_summary += " (Page no change)"
+                rr['suggestion'] = "Page has no obvious change"
         except:
-            diff_summary = "页面变化监控不可用"
+            diff_summary = "Page change monitoring unavailable"
         rr['diff'] = diff_summary
     return rr

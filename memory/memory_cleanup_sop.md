@@ -1,35 +1,35 @@
-# 记忆整理 SOP
+# Memory Cleanup SOP
 
-L1唯一目的：**存在性**索引：知道什么情况下有什么相关记忆去查
+L1 unique purpose: **Existence** index: know what related memory to check under what circumstances.
 
-## ROI模型
-L1每词每轮付成本，但防犯错（保险）。ROI = (犯错概率 × 代价) / 词数成本
+## ROI Model
+L1 pays a token cost per word per turn, but prevents mistakes (insurance). ROI = (Probability of mistake × Cost) / Cost of words.
 
-## 该留的（高ROI）
-- 红线：违反就不可逆，如"禁杀python" → 5词防-100k
-- 反直觉触发词：没提示想不到读SOP，如"HttpOnly" → 4词防任务失败
-- 路由指针：最小化SOP定位，如"vision_sop+vision_api.py"
+## What to keep (High ROI)
+- Red lines: Irreversible if violated, e.g. "forbid killing python" → 5 words prevents -100k
+- Counter-intuitive triggers: Won't think of reading SOP without a prompt, e.g. "HttpOnly" → 4 words prevents task failure.
+- Routing pointers: Minimize SOP locating, e.g. "vision_sop+vision_api.py"
 
-## 该删的（低ROI）
-- 实现细节：SOP里已有的"怎么做" → 只留触发词
-- 直觉能力：不提醒也能想到 → 0收益
-- 冗余：L3已覆盖的规则 / L1其他行已含的片段 → 重复交税不值
+## What to delete (Low ROI)
+- Implementation details: The "how-to" already in SOP → only keep trigger words
+- Intuitive abilities: Can think of it without a reminder → 0 gain
+- Redundancy: Rules already covered in L3 / fragments already in other L1 lines → paying tax for duplicates is not worth it
 
-## 逐条四问
-1. 删了它，犯错概率真的上升吗？→ 不上升就删
-2. L3 SOP已覆盖？→ 有就只留触发词
-3. 没这词能自己想到读SOP吗？→ 能就删
-4. 同样收益，能用更少词吗？→ 能就压缩
+## 4 Questions per Item
+1. If deleted, does the probability of making mistakes really increase? → If not, delete it.
+2. Is it already covered in L3 SOP? → If yes, only keep trigger words.
+3. Without these words, can you think of reading the SOP yourself? → If yes, delete it.
+4. For the same gain, can you use fewer words? → If yes, compress it.
 
-## L1写入检验（写之前必过）
-- "这几个词触发什么场景？" → 答不上来就别写；触发词=场景名(视频内容理解)非工具名(yt-dlp)
-- 压缩按场景价值不按字数：触发场景的词一字不删，没独立场景的实现细节才是压缩对象
-- 等级匹配：红线→RULES，SOP索引→L3文件名即可（禁加描述词）；名字自解释的不需要额外触发词，L0不塞工具
-- 记忆修改是持久性伤害，错误在后续每轮复利 → 整理比日常任务更需谨慎
+## L1 Write Verification (Must pass before writing)
+- "What scenario do these words trigger?" → If you can't answer, don't write it; Trigger word = scenario name (video content understanding) not tool name (yt-dlp).
+- Compress by scenario value, not word count: Trigger scenario words shouldn't be deleted at all; implementation details without an independent scenario are the targets for compression.
+- Level matching: Red lines → RULES, SOP index → L3 filename is sufficient (forbid adding description words); self-explanatory names do not need additional trigger words, do not stuff tools into L0.
+- Memory modification is persistent damage, errors compound in subsequent turns → Cleanup requires more caution than daily tasks.
 
-## 整理流程
-0. 先交付任务再沉淀，禁未完成就写记忆
-1. 逐行读insight，按|拆片段，每片段标注：红线/触发词/路由/实现细节
-2. 低ROI片段 → 确认L3覆盖后删；RULES逐条问"违反就炸还是好习惯"
-3. 检查近期犯错经验，补遗漏的高ROI触发词
-4. 验证总行数≤30
+## Cleanup Process
+0. Deliver task before depositing, forbid writing memory before completion.
+1. Read insight line by line, split fragments by |, label each fragment: red line / trigger word / routing / implementation detail.
+2. Low ROI fragments → delete after confirming L3 coverage; RULES ask per item "Does it blow up if violated or is it just a good habit?"
+3. Check recent mistake experiences, supplement omitted high ROI trigger words.
+4. Verify total lines ≤ 30.

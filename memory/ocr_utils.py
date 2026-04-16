@@ -1,10 +1,10 @@
 """
-本地 OCR 工具
-- OCR引擎: rapidocr-onnxruntime (~1s/次, 中英文准确率高, 带bbox)
-- 坑(rapid): result[i][2] conf 是 str 不是 float
-- 坑(rapid): 无文字时 result 返回 None 而非空列表
-- 坑: enhance 放大+高对比度处理，对清晰文字有害，默认关闭
-- 坑(远程桌面): ImageGrab/mss 在 RDP 断开后截图全黑，用 ocr_window(hwnd) 代替
+# Local OCR tool
+# - OCR engine: rapidocr-onnxruntime (~1s/time, high accuracy for Chinese and English, includes bbox)
+# - Issue (rapid): result[i][2] conf is str not float
+# - Issue (rapid): Returns None instead of empty list when no text is found
+# - Issue: enhance enlargement+high contrast processing is harmful to clear text, disabled by default
+# - Issue (Remote Desktop): ImageGrab/mss screenshots are fully black after RDP disconnection, use ocr_window(hwnd) instead
 """
 import re
 from PIL import ImageGrab, Image, ImageEnhance
@@ -41,12 +41,12 @@ def _ocr_rapid(img):
 
 def ocr_image(image_input, lang=_LANG, enhance=False, engine=None):
     """
-    对 PIL Image 做 OCR
-    :param image_input: PIL Image 对象 或 文件路径(str)
-    :param lang: 保留参数，当前未使用
-    :param enhance: 预处理
-    :param engine: 保留参数，当前仅支持 rapid/None
-    :return: dict {'text': 全文, 'lines': [行文本], 'details': [bbox+conf]}
+    Perform OCR on a PIL Image
+    :param image_input: PIL Image object or file path (str)
+    :param lang: Reserved parameter, currently unused
+    :param enhance: Pre-process
+    :param engine: Reserved parameter, currently only supports rapid/None
+    :return: dict {'text': full text, 'lines': [line text], 'details': [bbox+conf]}
     """
     if isinstance(image_input, str):
         image_input = Image.open(image_input)
@@ -58,18 +58,18 @@ def ocr_image(image_input, lang=_LANG, enhance=False, engine=None):
 
 def ocr_screen(bbox=None, lang=_LANG, enhance=False, engine=None):
     """
-    截取屏幕区域并 OCR
-    :param bbox: (x1, y1, x2, y2) 像素坐标，None=全屏
-    :return: dict {'text': 全文, 'lines': [行文本], 'details': [bbox+conf](仅rapid)}
+    Capture screen area and perform OCR
+    :param bbox: (x1, y1, x2, y2) pixel coordinates, None=full screen
+    :return: dict {'text': full text, 'lines': [line text], 'details': [bbox+conf](rapid only)}
     """
     img = ImageGrab.grab(bbox=bbox)
     return ocr_image(img, lang, enhance, engine)
 
 def ocr_window(hwnd, lang=_LANG, enhance=False, engine=None):
     """
-    截取窗口并 OCR (使用 PrintWindow API，支持远程桌面断开场景)
-    :param hwnd: 窗口句柄(int)
-    :return: dict {'text': 全文, 'lines': [行文本], 'details': [bbox+conf](仅rapid)}
+    Capture window and perform OCR (Uses PrintWindow API, supports remote desktop disconnect scenarios)
+    :param hwnd: Window handle (int)
+    :return: dict {'text': full text, 'lines': [line text], 'details': [bbox+conf](rapid only)}
     """
     import win32gui, win32ui
     from ctypes import windll
@@ -93,9 +93,9 @@ def ocr_window(hwnd, lang=_LANG, enhance=False, engine=None):
 
 if __name__ == "__main__":
     r = ocr_screen((0, 0, 400, 100))
-    print(f"识别结果: {r['text']}")
+    print(f"Recognition result: {r['text']}")
     for line in r['lines']:
-        print(f"  行: {line}")
+        print(f"  Line: {line}")
     if 'details' in r:
         for d in r['details']:
             print(f"  [{d['conf']:.3f}] {d['text']}")

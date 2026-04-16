@@ -1,5 +1,5 @@
-# launcher.pyw - GenericAgent 服务启动器
-# 纯 tkinter + 标准库，零第三方依赖，跨平台
+# launcher.pyw - GenericAgent service launcher
+# Pure tkinter + standard library, zero third-party dependencies, cross-platform
 import os, sys, socket, subprocess, threading
 import tkinter as tk
 from tkinter import ttk
@@ -99,7 +99,7 @@ class LauncherApp:
         self._poll()
 
     def _build_ui(self):
-        # 标题行：左边标签，右边 Rescan 按钮
+        # Title row: left label, right Rescan button
         header = ttk.Frame(self.root)
         header.pack(fill='x', padx=8, pady=(8, 0))
         ttk.Label(header, text='Services', font=('', 10, 'bold')).pack(side='left')
@@ -161,22 +161,22 @@ class LauncherApp:
             row.bind('<Button-1>', lambda e, n=name: self._select(n))
 
     def _rescan(self):
-        # 记住正在运行的服务
+        # Remember running services
         running_names = {n for n in self.mgr.procs if self.mgr.is_running(n)}
-        # 清除旧行
+        # Clear old rows
         for w in self.svc_container.winfo_children():
             w.destroy()
         self.status_labels.clear()
         self.row_frames.clear()
         self.name_labels.clear()
-        # 清除不再运行的 check_vars
+        # Clear check_vars that are no longer running
         old_vars = {k: v for k, v in self.check_vars.items() if k in running_names}
         self.check_vars.clear()
         self.check_vars.update(old_vars)
-        # 重新扫描
+        # Rescan
         self.services = discover_services()
         self._build_service_rows()
-        # 如果选中的服务不在新列表中，清除选中
+        # If selected service is not in the new list, clear selection
         svc_names = {s['name'] for s in self.services}
         if self.selected and self.selected not in svc_names:
             self.selected = None
@@ -191,7 +191,7 @@ class LauncherApp:
 
     def _select(self, name):
         self.selected = name
-        # 高亮选中行
+        # Highlight selected row
         for n, row in self.row_frames.items():
             if n == name:
                 row.configure(bg='#cce5ff')
@@ -208,16 +208,16 @@ class LauncherApp:
         lines = self.mgr.get_output(self.selected)
         new_text = ''.join(lines[-200:])
 
-        # 跳过无变化的刷新，避免不必要的闪烁和位置扰动
+        # Skip update if no changes to avoid unnecessary flickering and position disturbance
         current = self.output_text.get('1.0', 'end-1c')
         if new_text.rstrip('\n') == current.rstrip('\n'):
             return
 
-        # 记录滚动状态
+        # Record scroll state
         _top, bot = self.output_text.yview()
         at_bottom = bot >= 0.99
 
-        # 记录「距底部的行偏移」用于非底部时精确恢复位置
+        # Record row offset from the bottom for exact position recovery when not at bottom
         if not at_bottom:
             old_total = int(self.output_text.index('end-1c').split('.')[0])
             first_vis = int(float(self.output_text.index('@0,0')))
@@ -231,10 +231,10 @@ class LauncherApp:
         if at_bottom:
             self.output_text.see('end')
         else:
-            # 用距底部偏移恢复，不受总行数变化影响
+            # Recover position with bottom offset, immune to total row count changes
             new_total = int(self.output_text.index('end-1c').split('.')[0])
             target = max(1, new_total - offset_from_end)
-            self.output_text.yview_moveto(0)  # 先归零避免残留
+            self.output_text.yview_moveto(0)  # Reset to 0 first to avoid remnants
             self.output_text.see(f'{target}.0')
 
     def _poll(self):

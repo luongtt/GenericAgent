@@ -1,14 +1,14 @@
 # Vision API SOP
 
-## ⚠️ 前置规则（必须遵守）
+## ⚠️ Prerequisite Rules (Strictly Follow)
 
-1. **先枚举窗口**：调用 vision 前必须先用 `pygetwindow` 枚举窗口标题，确认目标窗口存在且已激活到前台。窗口不存在就不要截图。
-2. **🚫 禁止全屏截图**：必须先 `win32gui.GetWindowRect` 获取目标窗口坐标，再 `ImageGrab.grab(bbox=...)` 截窗口区域。能截局部（如标题栏）就不截整窗口，能截窗口就绝不全屏。全屏截图在任何场景下都不允许。
-3. **能不用 vision 就不用**：如果窗口标题/本地 OCR（`ocr_utils.py`）能获取所需信息，就不要调用 vision API，省 token 且更可靠。Vision 是最后手段。
+1. **Enumerate Windows First**: Before calling vision, you must use `pygetwindow` to enumerate window titles to confirm the target window exists and is activated to the foreground. Do not take screenshots if the window does not exist.
+2. **🚫 NO Fullscreen Screenshots**: You must first use `win32gui.GetWindowRect` to fetch the target window coordinates, then use `ImageGrab.grab(bbox=...)` to screenshot the window region. If you can screenshot a sub-region (like a title bar), don't do the whole window. If you screenshot a window, NEVER do full screen. Fullscreen screenshots are disallowed in ALL scenarios.
+3. **Avoid Vision If Possible**: If the window title or local OCR (`ocr_utils.py`) can obtain the required info, do not call the Vision API. It saves tokens and is more reliable. Vision is the last resort.
 
-## 快速用法
+## Quick Usage
 
-### 函数签名
+### Function Signature
 ```python
 ask_vision(
     image_input,
@@ -18,31 +18,31 @@ ask_vision(
 ) -> str
 ```
 
-### 示例
+### Example
 ```python
 from vision_api import ask_vision
-result = ask_vision("image.png", prompt="描述图片内容")  # 路径或PIL Image均可
+result = ask_vision("image.png", prompt="Describe the content of the image")  # Path or PIL Image both work
 ```
-返回 `str`：成功为模型回复，失败为 `Error: ...`。
+Returns `str`: Model's response on success, `Error: ...` on failure.
 
-## 核心参数
-- `image_input`: 文件路径(str/Path) 或 PIL Image 对象
-- `prompt`: 提示词（默认：详细描述这张图片的内容）
-- `max_pixels`: 最大像素数（默认1440000，超则自动缩放）
-- `timeout`: 超时秒数（默认60）
+## Core Parameters
+- `image_input`: File path (str/Path) or PIL Image object
+- `prompt`: Prompt string (Default: Describe the content of this image in detail)
+- `max_pixels`: Max pixel count (Default 1,440,000, autoscales if exceeded)
+- `timeout`: Timeout in seconds (Default 60)
 
-## 故障排除
-| 问题 | 解决方案 |
+## Troubleshooting
+| Issue | Solution |
 |------|--------|
-| 导入失败 | 可检查 `../../mykey.py` 文件是否存在（仅检查存在性，不读取内容） |
-| 超时 | 提高 timeout 或降低 max_pixels |
-| 格式错误 | 确保使用 PIL 支持的格式（PNG/JPG/GIF等） |
+| Import Fails | Check if `../../mykey.py` exists (only existence check, no content reading) |
+| Timeout | Increase `timeout` or decrease `max_pixels` |
+| Format Error | Ensure a PIL-supported format is used (PNG/JPG/GIF etc.) |
 
-## 关键风险与坑点 (L3 Caveats)
-- **无重试机制**: `vision_api.py` 内部未实现 API 错误重试（如 503、超时）。在自动化流程中使用时，**必须在上层代码手动实现重试逻辑**（建议指数退避），否则偶发网络波动会导致任务直接崩溃中断。
-- **API Config**: 当前使用 `claude_config141`(ncode.vkm2.com, 已验证)。备选可用: `native_claude_config2/84/5535`。失效时直接改 `vision_api.py` 中的 `cfg = mk.claude_configXXX`。
+## Key Risks & Pitfalls (L3 Caveats)
+- **No Retry Mechanism**: `vision_api.py` does not internally implement API error retries (e.g. 503, timeout). When using it in an automated flow, **you must manually implement retry logic in the upper-layer code** (exponential backoff recommended), otherwise occasional network issues will crash the task immediately.
+- **API Config**: Currently using `claude_config141` (ncode.vkm2.com, verified). Backup available: `native_claude_config2/84/5535`. If it expires, manually change `cfg = mk.claude_configXXX` inside `vision_api.py`.
 
 ---
-更新: 2025-07-18 | 修复oai_config导入+返回值统一str
-更新: 2026-02-18 | 默认后端改为Claude原生API | SOP精简(删废话/水段/合并示例)
-更新: 2026-07 | 修复config(原claude_config8不存在)→改为claude_config141
+Updated: 2025-07-18 | Fix oai_config import + unify string return type
+Updated: 2026-02-18 | Default backend changed to Claude native API | SOP simplification (removed fluff/merged examples)
+Updated: 2026-07 | Fix config (old claude_config8 didn't exist) → switched to claude_config141

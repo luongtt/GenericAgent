@@ -1,54 +1,54 @@
 # Memory Scanner SOP
 
-## 1. 快速开始
-内存特征搜索工具，支持 Hex (CE 风格) 和 字符串匹配。特别提供 LLM 模式，方便大模型分析内存上下文。
+## 1. Quick Start
+Memory footprint scanning tool, supports Hex (CE style) and string matching. Specifically provides LLM mode, facilitating LLM analysis of memory context.
 
-**Python 调用方式:**
+**Python Calling Method:**
 ```python
 import sys
-sys.path.append('../memory') # 直接挂载工具目录
+sys.path.append('../memory') # Mount the tool directory directly
 from procmem_scanner import scan_memory
 
-# 示例：搜索特定 Hex 特征码，开启 llm_mode 以获取上下文
+# Example: Search specific Hex signature, enable llm_mode to get context
 results = scan_memory(pid, "48 8b ?? ?? 00", mode="hex", llm_mode=True)
 ```
 
 **CLI:**
 ```powershell
-# 基础搜索
+# Basic search
 python ../memory/procmem_scanner.py <PID> "pattern" --mode string
 
-# LLM 增强模式（输出包含上下文的 JSON，推荐）
+# LLM enhanced mode (outputs JSON containing context, recommended)
 python ../memory/procmem_scanner.py <PID> "pattern" --llm
 ```
 
-## 2. 典型场景：结构体或关键数据定位
-1. 确定目标数据的前导特征或已知常量（如特定的 Header 或 Magic Number）。
-2. 在目标进程中搜索该特征：
+## 2. Typical Scenario: Locating Structs or Key Data
+1. Determine the leading signature or known constants of the target data (e.g., a specific Header or Magic Number).
+2. Search this signature in the target process:
    `scan_memory(pid, "4D 5A 90 00", mode="hex", llm_mode=True)`
-3. 分析返回的 JSON 中 `context` 字段，查看目标地址前后的原始字节及 ASCII 预览。
+3. Analyze the `context` field in the returned JSON, view the raw bytes before and after the target address and ASCII previews.
 
-## 3. 注意事项
-- **权限**: 并非强制要求管理员权限，但需具备对目标进程的 `PROCESS_QUERY_INFORMATION` 和 `PROCESS_VM_READ` 权限。
-- **效率**: 搜索大块内存时，尽量提供更唯一的特征码以减少误报。
+## 3. Notes
+- **Permissions**: Administrator privileges are not strictly required, but `PROCESS_QUERY_INFORMATION` and `PROCESS_VM_READ` permissions on the target process are needed.
+- **Efficiency**: When searching large blocks of memory, provide a more unique signature to reduce false positives.
 
-## 4. CE式差集扫描定位动态字段
-定位微信等自绘UI中随操作变化的内存字段（如当前会话标题）。核心：一次全量scan + 多次ReadProcessMemory筛选。
+## 4. CE-style Diff-scan to Locate Dynamic Fields
+Locating memory fields that change with operations in self-drawn UIs like WeChat (e.g., the current session title). Core idea: one full scan + multiple ReadProcessMemory filtering.
 
-**流程（3个联系人A/B/C即可收敛）：**
-1. 取PID：Weixin.exe有多进程，用`win32gui.GetWindowThreadProcessId`取有窗口的
-2. 当前会话=A → `scan_memory(pid, "人名A", mode="string")` → 地址集S
-3. 切到B → 读S全部地址 → 保留内容≠"人名A"的 → 候选C
-4. 切到A → 读C全部地址 → 保留内容=="人名A"的 → 候选C'（通常1-3个）
-5. 若C'>1 → 再切B/C重复 → 直到唯一
+**Workflow (3 contacts A/B/C are enough to converge):**
+1. Get PID: Weixin.exe has multiple processes, use `win32gui.GetWindowThreadProcessId` to get the one with a window.
+2. Current session = A → `scan_memory(pid, "NameA", mode="string")` → Address set S
+3. Switch to B → Read all addresses in S → Keep those whose content ≠ "NameA" → Candidate set C
+4. Switch to A → Read all addresses in C → Keep those whose content == "NameA" → Candidate set C' (usually 1-3)
+5. If C' > 1 → Switch B/C again and repeat → Until unique
 
-**切换会话+读地址 完整代码：**
+**Full code for switching session + reading addresses:**
 ```python
 import sys; sys.path.append('../memory')
 import ljqCtrl, pygetwindow as gw, pyperclip, time, ctypes
 
 def switch_chat(name):
-    win = gw.getWindowsWithTitle('微信')[0]
+    win = gw.getWindowsWithTitle('WeChat')[0]
     if win.isMinimized: win.restore()
     win.activate(); time.sleep(0.3)
     S = 1 / ljqCtrl.dpi_scale
@@ -70,13 +70,13 @@ def read_addrs(pid, addrs):
     return result  # {addr: text}
 ```
 
-**坑点：**
-- 进程名Weixin.exe（非WeChat.exe）；地址字符串先`int(addr,16)`
-- 步骤3筛≠A（排除空/乱码），步骤4筛==A（正向确认），交替最快
-- **搜索切换会话完全可用**，大部分差集步骤直接搜索即可。注意：搜索结果首条可能是广告，粘贴后≥1.5s再点，确认是联系人再点（或点第2条）
-- **仅最终消歧步骤需侧栏点击**：候选>1时，在侧栏点一个不同的人（不经搜索框），read_addrs看哪个地址跟随变化→那个就是标题栏
-- 切换后用read_addrs验证确实切成功了再继续
-- **步骤3/4必须用read_addrs读原始地址集，严禁重新scan**：重新scan只能找到静态残留(聊天记录等)，动态地址已变不在结果中，会导致0候选
-- **选A/B联系人用wechat_db_utils.quick_connect查真人**，避免搜索触发广告弹窗（公众号/小程序名会弹广告）
-- **scan_memory返回格式**：默认返回str列表（每项"Addr:0x...\nHex:..."），非dict。提取地址用`[int(r.split('\n')[0].split(':')[1],16) for r in results]`
-- **侧栏点击禁止估算坐标**：会话列表顺序随消息变化。参考 vision_sop + wechat_send_sop 流程（截图→ask_vision→精确坐标→点击）
+**Pitfalls:**
+- Process name is Weixin.exe (not WeChat.exe); address strings should first be `int(addr, 16)`.
+- Step 3 filters ≠ A (excluding empty/gibberish), Step 4 filters == A (positive confirmation), alternating is fastest.
+- **Searching to switch sessions is fully viable**, most diff-set steps can just use search. Note: the first search result might be an ad, click ≥1.5s after pasting, confirm it's a contact before clicking (or click the 2nd item).
+- **Only the final disambiguation step requires clicking the sidebar**: When candidates > 1, click a different person in the sidebar (without going through the search box), use read_addrs to see which address changes accordingly → that is the title bar.
+- Use read_addrs to verify the switch was indeed successful before continuing.
+- **Steps 3/4 must use read_addrs to read the original address set, strictly NO re-scanning**: Re-scanning will only find static remnants (chat history etc), the dynamic address has changed and won't be in the result, leading to 0 candidates.
+- **Use wechat_db_utils.quick_connect to find real people when picking contacts A/B**, to avoid search triggering ad popups (Official Accounts/Mini Programs names will pop ads).
+- **scan_memory return format**: Default returns a list of str (each item "Addr:0x...\nHex:..."), not dict. Extract addresses using `[int(r.split('\n')[0].split(':')[1],16) for r in results]`.
+- **Sidebar clicking forbids estimating coords**: Session list order changes with messages. Refer to vision_sop + wechat_send_sop flow (Screenshot → ask_vision → Exact coords → Click).

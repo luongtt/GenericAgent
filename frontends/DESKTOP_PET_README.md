@@ -1,66 +1,66 @@
 # Desktop Pet Skin System
 
-## 快速开始
+## Quick Start
 
-运行桌面宠物：
+Run the desktop pet:
 ```bash
 python3 desktop_pet_v2.pyw
 ```
 
-## 功能特性
+## Features
 
-### 1. 多皮肤支持
-- 自动发现 `skins/` 目录下的所有皮肤
-- 右键菜单切换皮肤
-- 支持 sprite sheet 和 GIF 两种格式
+### 1. Multi-skin Support
+- Auto-discovers all skins under the `skins/` directory
+- Right-click menu to switch skins
+- Supports both sprite sheet and GIF formats
 
-### 2. 多动画状态
-- **idle** - 待机动画
-- **walk** - 行走动画
-- **run** - 跑步动画
-- **sprint** - 冲刺动画
+### 2. Multi-animation States
+- **idle** - Idle animation
+- **walk** - Walking animation
+- **run** - Running animation
+- **sprint** - Sprinting animation
 
-右键菜单可切换动画状态
+The right-click menu can switch animation states
 
-### 3. 交互功能
-- **单击** - 拖动宠物
-- **双击** - 关闭程序
-- **右键** - 打开菜单（切换皮肤/动画）
+### 3. Interaction
+- **Click** - Drag the pet
+- **Double Click** - Close the program
+- **Right Click** - Open the menu (switch skin/animation)
 
-### 4. HTTP 远程控制
+### 4. HTTP Remote Control
 ```bash
-# 显示消息
+# Display message
 curl "http://127.0.0.1:51983/?msg=Hello"
 
-# 切换动画状态
+# Switch animation state
 curl "http://127.0.0.1:51983/?state=run"
 
-# POST 消息
-curl -X POST -d "任务完成" http://127.0.0.1:51983/
+# POST message
+curl -X POST -d "Task completed" http://127.0.0.1:51983/
 ```
 
-## 添加新皮肤
+## Adding New Skins
 
-### 目录结构
+### Directory Structure
 ```
 skins/
 └── your-skin-name/
-    ├── skin.json       # 配置文件（必需）
-    ├── idle.png        # 动画资源
+    ├── skin.json       # Config file (required)
+    ├── idle.png        # Animation assets
     ├── walk.png
     ├── run.png
     └── sprint.png
 ```
 
-### skin.json 配置示例
+### skin.json Configuration Example
 
-#### Sprite Sheet 格式（推荐）
+#### Sprite Sheet Format (Recommended)
 ```json
 {
   "name": "My Pet",
   "version": "1.0.0",
   "author": "Your Name",
-  "description": "描述",
+  "description": "Description",
   "format": "sprite",
   "animations": {
     "idle": {
@@ -91,7 +91,7 @@ skins/
 }
 ```
 
-#### GIF 格式
+#### GIF Format
 ```json
 {
   "name": "My Pet",
@@ -109,38 +109,38 @@ skins/
 }
 ```
 
-### 配置说明
+### Configuration Notes
 
-- **frameWidth/frameHeight**: 单帧尺寸（像素）
-- **frameCount**: 帧数
-- **columns**: sprite sheet 的列数
-- **fps**: 播放帧率
-- **startFrame**: 起始帧索引（从 0 开始）
+- **frameWidth/frameHeight**: Single frame dimensions (in pixels)
+- **frameCount**: Number of frames
+- **columns**: Number of columns in the sprite sheet
+- **fps**: Playback frame rate
+- **startFrame**: Starting frame index (0-indexed)
 
-### Sprite Sheet 布局
+### Sprite Sheet Layout
 
 ```
 +-------+-------+-------+-------+
-| 帧0   | 帧1   | 帧2   | 帧3   |  ← 第一行
+| Frm 0 | Frm 1 | Frm 2 | Frm 3 |  ← Row 1
 +-------+-------+-------+-------+
-| 帧4   | 帧5   | 帧6   | 帧7   |  ← 第二行
+| Frm 4 | Frm 5 | Frm 6 | Frm 7 |  ← Row 2
 +-------+-------+-------+-------+
 ```
 
-如果 `columns=4, startFrame=2, frameCount=3`，则读取：帧2, 帧3, 帧4
+If `columns=4, startFrame=2, frameCount=3`, it reads: Frame 2, Frame 3, Frame 4
 
-## 已包含的皮肤
+## Included Skins
 
-1. **Glube** - 像素风小怪兽（多文件 sprite）
-2. **Vita** - 像素风小恐龙（单文件 sprite）
-3. **Doux** - 像素风小恐龙（单文件 sprite）
+1. **Glube** - Pixel monster (Multi-file sprite)
+2. **Vita** - Pixel dinosaur (Single-file sprite)
+3. **Doux** - Pixel dinosaur (Single-file sprite)
 
-## 从 ai-bubu 导入更多皮肤
+## Importing More Skins from ai-bubu
 
-ai-bubu 项目包含更多皮肤资源，可以直接复制：
+The ai-bubu project contains more skin assets which can be directly copied:
 
 ```bash
-# 复制皮肤
+# Copy skins
 cp -r ai-bubu-main/packages/app/public/skins/boy frontends/skins/
 cp -r ai-bubu-main/packages/app/public/skins/dinosaur frontends/skins/
 cp -r ai-bubu-main/packages/app/public/skins/line frontends/skins/
@@ -148,28 +148,28 @@ cp -r ai-bubu-main/packages/app/public/skins/mort frontends/skins/
 cp -r ai-bubu-main/packages/app/public/skins/tard frontends/skins/
 ```
 
-## 与 stapp.py 集成
+## Integration with stapp.py
 
-在 `stapp.py` 中点击"🐱 桌面宠物"按钮会自动启动桌面宠物，并在每个 turn 结束时发送通知。
+Clicking the "🐱 Desktop Pet" button in `stapp.py` automatically launches the desktop pet and sends a notification at the end of each turn.
 
-## 故障排查
+## Troubleshooting
 
-### 皮肤不显示
-1. 检查 `skin.json` 格式是否正确
-2. 确认图片文件存在
-3. 检查 sprite 配置参数是否匹配图片尺寸
+### Skin does not display
+1. Check if `skin.json` format is correct
+2. Confirm the image file exists
+3. Check if sprite config parameters match image dimensions
 
-### 动画不流畅
-- 调整 `fps` 参数
-- 检查帧数是否正确
+### Animation is not smooth
+- Adjust the `fps` parameter
+- Check if the frame count is correct
 
-### 透明背景问题
-- 确保 PNG 文件包含 alpha 通道
-- 使用 RGBA 模式的图片
+### Transparent background issues
+- Ensure the PNG file contains an alpha channel
+- Use images with RGBA mode
 
-## 技术细节
+## Technical Details
 
-- 基于 Tkinter + PIL/Pillow
-- 支持透明背景（#01FF01 色键）
-- 窗口置顶、无边框
-- HTTP 服务器端口：51983
+- Built on Tkinter + PIL/Pillow
+- Supports transparent background (#01FF01 color key)
+- Window stays on top, borderless
+- HTTP server port: 51983
